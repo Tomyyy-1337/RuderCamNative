@@ -1,0 +1,187 @@
+//! The app's Rust UI: its root component, which `nsh run`, `nsh package`
+//! and `cargo run` mount.
+
+mod pages;
+mod stores;
+
+use nsh_base::{nav_page, nav_stack, tab, tabs, theme};
+use nsh_core::prelude::*;
+use pages::{
+    anzeige_einstellungen, einstellungen, fahrt_eintrag, fahrtenbuch, home, karte_view,
+};
+use stores::fahrtenbuch::Fahrtenbuch;
+
+#[derive(Clone, Copy, PartialEq)]
+enum Page {
+    Home,
+    Fahrtenbuch,
+    Einstellungen,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+enum Route {
+    Anzeige,
+    FahrtEintrag(usize),
+}
+
+const PAGES: [(Page, &str); 3] = [
+    (Page::Home, "Home"),
+    (Page::Fahrtenbuch, "Fahrtenbuch"),
+    (Page::Einstellungen, "Settings"),
+];
+
+/// The app's UI set (`nsh.json` `"rust"`): what a TSX entry may import from
+/// `treiber-nsh/native` (`README.md`, "Adding a TSX entry").
+#[native_module("treiber-nsh/native")]
+fn native(registry: &mut Registry) {
+    registry.register::<App>();
+}
+
+/// The application's root component.
+#[component]
+pub fn App() -> impl IntoElement {
+    let page = signal(Page::Home);
+    let routes = signal(Vec::<Route>::new());
+    let karte_open = signal(false);
+    let fahrt_map_open = signal(false);
+    
+    let fahrtenbuch_store = signal(stores::fahrtenbuch::load());
+    effect(move || stores::fahrtenbuch::save(&fahrtenbuch_store.get()));
+
+    let theme_mode = signal(stores::theme::load());
+    effect(move || {
+        let mode = theme_mode.get();
+        stores::theme::save(mode);
+        set_color_scheme(mode.appearance());
+    });
+
+    effect(move || {
+        on_back_press(move || {
+            if fahrt_map_open.get_untracked() {
+                fahrt_map_open.set(false);
+                return true;
+            }
+            if karte_open.get_untracked() {
+                karte_open.set(false);
+                return true;
+            }
+            if !routes.get_untracked().is_empty() {
+                return false;
+            }
+            page.set(Page::Home);
+            true
+        });
+    });
+
+    nav_stack()
+        .flex_1()
+        .child(
+            nav_page()
+                .key("tabs")
+                .header_visible(false)
+                .status_bar(move || {
+                    let style = match theme_mode.get() {
+                        stores::theme::ThemeMode::Light => StatusBarStyle::Dark,
+                        stores::theme::ThemeMode::Dark => StatusBarStyle::Light,
+                    };
+                    StatusBarSetting::default().foreground(style)
+                })
+                .child(
+                view()
+                    .flex_1()
+                    .bg(move || theme().background)
+                    .text_color(move || theme().foreground)
+                    .child(when(
+                        move || !karte_open.get(),
+                        move || tabs_content(page, routes, fahrtenbuch_store),
+                    ))
+                    .child(when(
+                        move || karte_open.get(),
+                        move || karte_view(karte_open),
+                    )),
+            ),
+        )
+        .child(each(
+            move || routes.get(),
+            |route: &Route| format!("{route:?}"),
+            move |route, index| match route.get_untracked() {
+                Route::Anzeige => anzeige_einstellungen(routes, index, theme_mode),
+                Route::FahrtEintrag(id) => {
+                    fahrt_eintrag(routes, index, fahrtenbuch_store, id, fahrt_map_open)
+                }
+            },
+        ))
+}
+
+fn navbar(page: Signal<Page>) -> impl IntoElement {
+    let mut bar = tabs()
+        .flex_row()
+        .p_1()
+        .rounded(px(10.0))
+        .bg(move || theme().muted);
+    for (item, label) in PAGES {
+        bar = bar.child(
+            tab()
+                .flex_1()
+                .items_center()
+                .py_2()
+                .rounded(px(8.0))
+                .bg(move || {
+                    if page.get() == item {
+                        theme().primary
+                    } else {
+                        theme().muted
+                    }
+                })
+                .selected(move || page.get() == item)
+                .on_press(move || page.set(item))
+                .child(text(label).text_size(px(15.0)).text_color(move || {
+                    if page.get() == item {
+                        theme().primary_foreground
+                    } else {
+                        theme().foreground
+                    }
+                })),
+        );
+    }
+    bar
+}
+
+fn tabs_content(
+    page: Signal<Page>,
+    routes: Signal<Vec<Route>>,
+    fahrtenbuch_store: Signal<Fahrtenbuch>,
+) -> impl IntoElement {
+    view().flex_1().p_safe_area().bg(move || theme().background).child(
+        view().flex_1().items_center().px_2().pt_2().child(
+            view()
+                .flex_1()
+                .w_full()
+                .max_w(px(840.0))
+                .gap_4()
+                .child(
+                    view()
+                        .items_center()
+                        .px_5()
+                        .py_3()
+                        .rounded(px(10.0))
+                        .bg(move || theme().muted)
+                        .child(text("Ruder Cam Beta").text_size(px(20.0))),
+                )
+                .child(navbar(page))
+                .child(
+                    view()
+                        .flex_1()
+                        .child(when(move || page.get() == Page::Home, home))
+                        .child(when(
+                            move || page.get() == Page::Fahrtenbuch,
+                            move || fahrtenbuch(routes, fahrtenbuch_store),
+                        ))
+                        .child(when(
+                            move || page.get() == Page::Einstellungen,
+                            move || einstellungen(routes),
+                        )),
+                ),
+        ),
+    )
+}
