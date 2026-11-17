@@ -6,9 +6,16 @@ edition = "2024"
 [dependencies]
 serde = { version = "1.0", features = ["derive"] }
 chrono = { version = "0.4", optional = true }
+nsh-core = { version = "0.5.1", optional = true }
+serde_json = { version = "1.0", optional = true }
+axum = { version = "0.8.9", optional = true, features = ["ws"] }
 
 [features]
-backend = []
+backend = [
+    "dep:axum"
+]
 frontend = [
-    "dep:chrono"
+    "dep:chrono",
+    "dep:nsh-core",
+    "dep:serde_json"
 ]

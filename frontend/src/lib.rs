@@ -8,6 +8,7 @@ use nsh_base::{nav_page, nav_stack, tab, tabs, theme};
 use nsh_core::prelude::*;
 use pages::{
     anzeige_einstellungen, einstellungen, fahrt_eintrag, fahrtenbuch, home, karte_view,
+    kamera_einstellungen,
 };
 use stores::fahrtenbuch::Fahrtenbuch;
 
@@ -21,6 +22,7 @@ enum Page {
 #[derive(Debug, Clone, Copy, PartialEq)]
 enum Route {
     Anzeige,
+    Kamera,
     FahrtEintrag(usize),
 }
 
@@ -106,6 +108,7 @@ pub fn App() -> impl IntoElement {
             |route: &Route| format!("{route:?}"),
             move |route, index| match route.get_untracked() {
                 Route::Anzeige => anzeige_einstellungen(routes, index, theme_mode),
+                Route::Kamera => kamera_einstellungen(routes, index),
                 Route::FahrtEintrag(id) => {
                     fahrt_eintrag(routes, index, fahrtenbuch_store, id, fahrt_map_open)
                 }

@@ -78,6 +78,7 @@ dependencies = [
  "gpiocdev",
  "libc",
  "linux-embedded-hal",
+ "serde",
  "shared_data",
  "tokio",
  "tower-http",
@@ -888,6 +889,7 @@ dependencies = [
 name = "shared_data"
 version = "0.1.0"
 dependencies = [
+ "axum",
  "serde",
 ]
 

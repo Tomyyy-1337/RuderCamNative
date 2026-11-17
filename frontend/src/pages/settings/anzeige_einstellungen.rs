@@ -1,8 +1,8 @@
-use nsh_base::{button, nav_page, theme};
+use nsh_base::{button, theme};
 use nsh_core::prelude::*;
 
 use crate::Route;
-use crate::pages::settings::settings_page_wrapper::settings_page_wrapper;
+use crate::pages::settings::settings_page_wrapper::settings_screen;
 use crate::stores::theme::ThemeMode;
 
 /// The Settings subpage for display options, pushed on top of the tabs.
@@ -11,22 +11,17 @@ pub(crate) fn anzeige_einstellungen(
     index: ReadSignal<usize>,
     theme_mode: Signal<ThemeMode>,
 ) -> Screen {
-    nav_page()
-        .header_visible(false)
-        .animation(ScreenAnimation::None)
-        .on_dismiss(move || routes.update(|r| r.truncate(index.get_untracked())))
-        .child(settings_page_wrapper(
-            "Anzeige-Einstellungen",
-            "Erscheinungsbild anpassen",
-            move || {
-                routes.update(|r| {
-                    r.pop();
-                })
-            },
-            view() 
-                .gap_6()
-                .child(theme_section(theme_mode)),
-        ))
+    settings_screen(
+        routes,
+        index,
+        "Anzeige-Einstellungen",
+        "Erscheinungsbild anpassen",
+        view()
+            .gap_6()
+            .child(
+                theme_section(theme_mode)
+            ),
+    )
 }
 
 fn theme_section(theme_mode: Signal<ThemeMode>) -> impl IntoElement {

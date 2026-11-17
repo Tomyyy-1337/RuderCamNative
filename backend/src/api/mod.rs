@@ -1,1 +1,1 @@
-pub mod axum_server;
+pub mod camera_settings;

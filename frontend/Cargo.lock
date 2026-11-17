@@ -3659,7 +3659,9 @@ name = "shared_data"
 version = "0.1.0"
 dependencies = [
  "chrono",
+ "nsh-core",
  "serde",
+ "serde_json",
 ]
 
 [[package]]

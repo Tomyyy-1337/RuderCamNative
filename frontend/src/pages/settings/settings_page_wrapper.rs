@@ -1,5 +1,31 @@
-use nsh_base::{button, theme};
+use nsh_base::{button, nav_page, theme};
 use nsh_core::prelude::*;
+
+use crate::Route;
+
+/// A settings subpage pushed on top of the tabs; closing it pops the route.
+pub(crate) fn settings_screen(
+    routes: Signal<Vec<Route>>,
+    index: ReadSignal<usize>,
+    title: impl Into<String>,
+    subtitle: impl Into<String>,
+    content: impl IntoElement,
+) -> Screen {
+    nav_page()
+        .header_visible(false)
+        .animation(ScreenAnimation::None)
+        .on_dismiss(move || routes.update(|r| r.truncate(index.get_untracked())))
+        .child(settings_page_wrapper(
+            title,
+            subtitle,
+            move || {
+                routes.update(|r| {
+                    r.pop();
+                })
+            },
+            content,
+        ))
+}
 
 /// Title, subtitle and a round close button, followed by the page content inside a centred column.
 pub(crate) fn settings_page_wrapper(
