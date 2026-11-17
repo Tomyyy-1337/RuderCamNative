@@ -3,73 +3,11 @@
 use std::collections::VecDeque;
 use std::time::Duration;
 
-use chrono::{DateTime, Datelike, Local, Timelike};
 use nsh_core::storage::Storage;
 use serde::{Deserialize, Serialize};
+use shared_data::{FinishedFahrt, GpsPosition, SerializableDateTime};
 
 const KEY: &str = "fahrtenbuch";
-
-#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq, Default)]
-pub struct SerializableDateTime {
-    year: u16,
-    month: u8,
-    day: u8,
-    hour: u8,
-    minute: u8,
-    second: u8,
-}
-
-impl SerializableDateTime {
-    pub fn date_string(&self) -> String {
-        format!("{:02}.{:02}.{:04}", self.day, self.month, self.year)
-    }
-
-    pub fn hour_minute_string(&self) -> String {
-        format!("{:02}:{:02}", self.hour, self.minute)
-    }
-
-    pub fn year_month(&self) -> (u16, u8) {
-        (self.year, self.month)
-    }
-
-    pub fn month_label(&self) -> String {
-        const MONTHS: [&str; 12] = [
-            "Januar", "Februar", "März", "April", "Mai", "Juni",
-            "Juli", "August", "September", "Oktober", "November", "Dezember",
-        ];
-        let name = MONTHS.get(self.month.wrapping_sub(1) as usize).copied().unwrap_or("?");
-        format!("{} {}", name, self.year)
-    }
-}
-
-impl From<DateTime<Local>> for SerializableDateTime {
-    fn from(dt: DateTime<Local>) -> Self {
-        SerializableDateTime {
-            year: dt.year() as u16,
-            month: dt.month() as u8,
-            day: dt.day() as u8,
-            hour: dt.hour() as u8,
-            minute: dt.minute() as u8,
-            second: dt.second() as u8,
-        }
-    }
-}
-
-#[derive(Clone, Debug, Serialize, Deserialize, Default, PartialEq)]
-pub struct FinishedFahrt {
-    pub client_start_time: SerializableDateTime,
-    pub schlag_count: u32,
-    pub distance_traveled: f32,
-    pub gps_history: Vec<GpsPosition>,
-    pub active_time: std::time::Duration,
-}
-
-impl FinishedFahrt {
-    pub fn active_time_string(&self) -> String {
-        let total = self.active_time.as_secs();
-        format!("{:02}:{:02}", total / 3600, (total / 60) % 60)
-    }
-}
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Fahrtenbuch {
@@ -103,12 +41,6 @@ impl Fahrtenbuch {
 pub struct Indexed<T> {
     pub index: usize,
     pub value: T,
-}
-
-#[derive(Clone, Copy, Debug, Serialize, Deserialize, PartialEq)]
-pub struct GpsPosition {
-    pub latitude: f64,
-    pub longitude: f64,
 }
 
 /// The stored Fahrtenbuch, or the sample trips when none is stored or it is unreadable.

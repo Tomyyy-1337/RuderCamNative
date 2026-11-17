@@ -23,7 +23,6 @@ impl ThemeMode {
     }
 }
 
-/// The stored mode, or the default when none is stored or it is unreadable.
 pub fn load() -> ThemeMode {
     Storage::get_item(KEY)
         .and_then(|raw| serde_json::from_str(&raw).ok())

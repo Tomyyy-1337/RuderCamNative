@@ -2264,6 +2264,7 @@ dependencies = [
  "nsh-platform-windows",
  "serde",
  "serde_json",
+ "shared_data",
  "ureq",
 ]
 
@@ -3651,6 +3652,14 @@ dependencies = [
  "cfg-if",
  "cpufeatures",
  "digest",
+]
+
+[[package]]
+name = "shared_data"
+version = "0.1.0"
+dependencies = [
+ "chrono",
+ "serde",
 ]
 
 [[package]]

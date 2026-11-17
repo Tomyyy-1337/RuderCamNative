@@ -2,7 +2,7 @@ use nsh_base::{button, theme};
 use nsh_core::prelude::*;
 
 use crate::Route;
-use crate::stores::fahrtenbuch::{Fahrtenbuch, FinishedFahrt, Indexed};
+use crate::stores::fahrtenbuch::Fahrtenbuch;
 
 #[derive(Clone, PartialEq)]
 struct Summary {

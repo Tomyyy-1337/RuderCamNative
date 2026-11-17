@@ -1,10 +1,11 @@
 use nsh_base::{button, nav_page, theme};
 use nsh_core::prelude::*;
+use shared_data::FinishedFahrt;
 
 use crate::Route;
 use crate::pages::components::map::map_html;
 use crate::pages::settings::settings_page_wrapper::settings_page_wrapper;
-use crate::stores::fahrtenbuch::{Fahrtenbuch, FinishedFahrt};
+use crate::stores::fahrtenbuch::Fahrtenbuch;
 
 /// The detail screen for one Fahrtenbuch entry, pushed on top of the tabs.
 pub(crate) fn fahrt_eintrag(
@@ -29,6 +30,7 @@ pub(crate) fn fahrt_eintrag(
         .collect();
     let preview_points = points.clone();
     let map_idle_count = signal(0_u32);
+    let delete_armed = signal(false);
 
     nav_page()
         .header_visible(false)
@@ -46,11 +48,20 @@ pub(crate) fn fahrt_eintrag(
                                 r.pop();
                             })
                         },
-                        view()
-                            .gap_6()
-                            .child(route_section(preview_points.clone(), map_open, map_idle_count))
-                            .child(distance_card(fahrt.distance_traveled))
-                            .child(stats(fahrt.clone())),
+                        scroll()
+                            .flex_1()
+                            .min_h(px(0.0))
+                            .child(
+                                view()
+                                    .gap_6()
+                                    .child(route_section(preview_points.clone(), map_open, map_idle_count))
+                                    .child(distance_card(fahrt.distance_traveled))
+                                    .child(stats(fahrt.clone()))
+                                    .child(delete_button(delete_armed, move || {
+                                        fahrtenbuch.update(|book| book.remove_entry(id));
+                                        routes.update(|r| r.truncate(index.get_untracked()));
+                                    })),
+                            ),
                     )
                 }))
                 .child(when(move || map_open.get(), move || {
@@ -94,6 +105,33 @@ fn stats(fahrt: FinishedFahrt) -> impl IntoElement {
                 .gap_2()
                 .child(stat_cell("Schläge", fahrt.schlag_count.to_string()))
                 .child(stat_cell("Wegpunkte", fahrt.gps_history.len().to_string())),
+        )
+}
+
+fn delete_button(armed: Signal<bool>, on_confirm: impl Fn() + 'static) -> impl IntoElement {
+    button()
+        .w_full()
+        .py_3()
+        .rounded(px(16.0))
+        .items_center()
+        .border_2()
+        .border_color(move || theme().destructive)
+        .bg(move || if armed.get() { theme().destructive } else { theme().background })
+        .on_press(move || {
+            if armed.get_untracked() {
+                on_confirm();
+            } else {
+                armed.set(true);
+            }
+        })
+        .child(
+            text(move || {
+                if armed.get() { "Löschen bestätigen" } else { "Fahrt löschen" }.to_string()
+            })
+            .text_size(px(16.0))
+            .text_color(move || {
+                if armed.get() { theme().background } else { theme().destructive }
+            }),
         )
 }
 

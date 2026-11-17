@@ -13,6 +13,7 @@ env_logger = "0.11"
 chrono = "0.4"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
+shared_data = { path = "../shared_data", features = ["frontend"] }
 
 [target.'cfg(target_os = "linux")'.dependencies]
 nsh-platform-linux = { version = "0.5.1", default-features = false, features = ["shader", "editor", "emoji-picker", "highlight", "math", "plot", "rich-editor", "term"] }
@@ -31,3 +32,10 @@ opt-level = 1
 
 [profile.dev.package."*"]
 opt-level = 3
+
+
+[profile.release]
+lto = true
+codegen-units = 1
+strip = true
+opt-level = "s"
