@@ -4,7 +4,7 @@ use axum::{Router, routing::get_service};
 use tokio::{runtime::LocalOptions, sync::watch};
 use tower_http::{cors::CorsLayer, services::ServeDir};
 
-use crate::{hardware_interface::i2c_interface::I2cInterface, tasks::update_camera::update_camera_task};
+use crate::{hardware_interface::i2c_interface::I2cInterface, tasks::{reader_battery, update_camera::update_camera_task}};
 
 mod api;
 mod hardware_interface;
@@ -26,9 +26,10 @@ fn main() {
             let camera_interface_initial = shared_data::CameraInterface::new();
             
             let (camera_interface_sender, camera_interface_receiver) = watch::channel(camera_interface_initial);
-            
+            let (battery_sender, battery_receiver) = watch::channel(shared_data::BatteryState { percentage: 50 });
 
             tokio::task::spawn_local(update_camera_task(camera_interface_receiver.clone()));
+            tokio::task::spawn_local(reader_battery::read_battery_task(battery_sender.clone()));
 
 
             let addr = SocketAddr::from(([0, 0, 0, 0], 8140));
@@ -41,7 +42,8 @@ fn main() {
                 .merge(shared_data::api::set_exposure_compensation(api::camera_settings::set_exposure_compensation_handler, camera_interface_sender.clone()))
                 .merge(shared_data::api::set_metering_mode(api::camera_settings::set_metering_mode_handler, camera_interface_sender))
                 .route("/ws", axum::routing::get(move |ws: axum::extract::ws::WebSocketUpgrade| api::socket::ws_handler(ws, 
-                    camera_interface_receiver
+                    camera_interface_receiver,
+                    battery_receiver,
                 )))
                 .nest_service("/maps", get_service(ServeDir::new("./maps")))
                 .layer(CorsLayer::permissive());

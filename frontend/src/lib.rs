@@ -4,7 +4,9 @@
 mod pages;
 mod socket;
 mod stores;
+mod icons;
 
+use icons::{battery::battery_indicator, gps::gps_indicator};
 use nsh_base::{nav_page, nav_stack, tab, tabs, theme};
 use nsh_core::prelude::*;
 use pages::{
@@ -54,7 +56,9 @@ pub fn App() -> impl IntoElement {
     let camera_interface = signal(shared_data::CameraInterface::new());
 
     let socket_connected = signal(false);
-    socket::start(socket_connected, camera_interface);
+    let battery_state = signal(0u8);
+    let gps_count = signal(0u8);
+    socket::start(socket_connected, camera_interface, battery_state, gps_count);
 
     let theme_mode = signal(stores::theme::load());
     effect(move || {
@@ -101,7 +105,16 @@ pub fn App() -> impl IntoElement {
                     .text_color(move || theme().foreground)
                     .child(when(
                         move || !karte_open.get(),
-                        move || tabs_content(page, routes, fahrtenbuch_store),
+                        move || {
+                            tabs_content(
+                                page,
+                                routes,
+                                fahrtenbuch_store,
+                                battery_state,
+                                gps_count,
+                                socket_connected,
+                            )
+                        },
                     ))
                     .child(when(
                         move || karte_open.get(),
@@ -160,6 +173,9 @@ fn tabs_content(
     page: Signal<Page>,
     routes: Signal<Vec<Route>>,
     fahrtenbuch_store: Signal<Fahrtenbuch>,
+    battery_state: Signal<u8>,
+    gps_count: Signal<u8>,
+    socket_connected: Signal<bool>,
 ) -> impl IntoElement {
     view().flex_1().p_safe_area().bg(move || theme().background).child(
         view().flex_1().items_center().px_2().pt_2().child(
@@ -170,12 +186,26 @@ fn tabs_content(
                 .gap_4()
                 .child(
                     view()
+                        .flex_row()
                         .items_center()
-                        .px_5()
+                        .h(px(50.0))
+                        .px_2()
                         .py_3()
                         .rounded(px(10.0))
                         .bg(move || theme().muted)
-                        .child(text("Ruder Cam Beta").text_size(px(20.0))),
+                        .child(
+                            view()
+                                .flex_1()
+                                .items_start()
+                                .child(battery_indicator(battery_state, socket_connected)),
+                        )
+                        .child(text("Ruder Cam Beta").text_size(px(20.0)))
+                        .child(
+                            view()
+                                .flex_1()
+                                .items_end()
+                                .child(gps_indicator(gps_count, socket_connected)),
+                        ),
                 )
                 .child(navbar(page))
                 .child(

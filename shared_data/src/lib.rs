@@ -10,6 +10,9 @@ pub use gps_position::GpsPosition;
 mod camera_interface;
 pub use camera_interface::*;
 
+mod battery_state;
+pub use battery_state::BatteryState;
+
 pub(crate) mod api_macro;
 pub mod api;
 

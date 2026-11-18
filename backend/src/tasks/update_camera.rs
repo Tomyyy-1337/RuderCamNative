@@ -1,4 +1,4 @@
-use std::{str::FromStr, time::Duration};
+use std::time::Duration;
 use serde::Serialize;
 use shared_data::{CameraInterface, FocusMode, Metering};
 

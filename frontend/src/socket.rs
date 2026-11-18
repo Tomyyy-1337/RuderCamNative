@@ -6,10 +6,21 @@ use tokio::sync::mpsc::{UnboundedSender, unbounded_channel};
 
 const RETRY_DELAY: Duration = Duration::from_secs(3);
 
-fn apply_message(message: Message, camera_interface: Signal<shared_data::CameraInterface>) {
+fn apply_message(
+    message: Message,
+    camera_interface: Signal<shared_data::CameraInterface>,
+    battery: Signal<u8>,
+    satellites: Signal<u8>,
+) {
     match message {
         Message::CameraInterfaceUpdate(update) => {
             camera_interface.set(update);
+        }
+        Message::BatteryState(update) => {
+            battery.set(update.percentage);
+        }
+        Message::GpsSatellites(count) => {
+            satellites.set(count);
         }
     }
 }
@@ -22,7 +33,12 @@ enum SocketEvent {
 
 /// Keeps a connection to the server open, retrying on disconnect. `connected`
 /// follows the connection state and each server message goes to `apply_message`.
-pub fn start(connected: Signal<bool>, camera_interface: Signal<shared_data::CameraInterface>) {
+pub fn start(
+    connected: Signal<bool>,
+    camera_interface: Signal<shared_data::CameraInterface>,
+    battery: Signal<u8>,
+    satellites: Signal<u8>,
+) {
     let (events, mut received) = unbounded_channel();
 
     spawn(async move {
@@ -30,7 +46,9 @@ pub fn start(connected: Signal<bool>, camera_interface: Signal<shared_data::Came
             match event {
                 SocketEvent::Opened => connected.set(true),
                 SocketEvent::Closed => connected.set(false),
-                SocketEvent::Message(message) => apply_message(message, camera_interface.clone()),
+                SocketEvent::Message(message) => {
+                    apply_message(message, camera_interface.clone(), battery.clone(), satellites.clone())
+                }
             }
         }
     });

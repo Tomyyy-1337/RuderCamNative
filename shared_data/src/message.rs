@@ -1,9 +1,11 @@
 use serde::{Deserialize, Serialize};
 
-use crate::CameraInterface;
+use crate::{BatteryState, CameraInterface};
 
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq)]
 pub enum Message {
     CameraInterfaceUpdate(CameraInterface),
+    BatteryState(BatteryState),
+    GpsSatellites(u8),
 }
