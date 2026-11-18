@@ -1,4 +1,4 @@
-use nsh_base::{SelectItem, theme};
+use nsh_base::{SelectItem, SliderValue, slider, theme};
 use nsh_core::prelude::*;
 use shared_data::{CameraInterface, FocusMode, Metering};
 
@@ -22,6 +22,9 @@ const FOCAL_LENGTH_OPTIONS: &[(u8, &str)] = &[
     (42, "42 mm"),
     (50, "50 mm"),
 ];
+const EXPOSURE_MIN: f64 = -3.0;
+const EXPOSURE_MAX: f64 = 3.0;
+const EXPOSURE_STEP: f64 = 0.3;
 
 /// The Settings subpage for camera options, pushed on top of the tabs.
 pub(crate) fn kamera_einstellungen(
@@ -60,8 +63,88 @@ pub(crate) fn kamera_einstellungen(
                 nsh_core::element::spawn(async move {
                     let _ = shared_data::api::set_metering_mode(v).await;
                 });
-            })),
+            }))
+            .child(exposure_compensation_section(camera_interface)),
     )
+}
+
+// The local signal follows the drag; the server is only told the value on release.
+fn exposure_compensation_section(camera_interface: Signal<CameraInterface>) -> impl IntoElement {
+    let exposure = signal(camera_interface.get().exposure_compenstion as f64);
+
+    // One tick per step; ticks on every half unit are taller.
+    let tick_count = ((EXPOSURE_MAX - EXPOSURE_MIN) / EXPOSURE_STEP).round() as usize;
+    let mut ticks = view()
+        .flex_row()
+        .justify_between()
+        .items_center()
+        .h(px(10.0))
+        .px(px(8.0));
+    for i in 0..=tick_count {
+        let value = EXPOSURE_MIN + i as f64 * EXPOSURE_STEP;
+        let major = ((value * 2.0).round() - value * 2.0).abs() < 1e-6;
+        ticks = ticks.child(
+            view()
+                .w(px(2.0))
+                .h(px(if major { 10.0 } else { 5.0 }))
+                .rounded_full()
+                .bg(move || theme().muted_foreground),
+        );
+    }
+
+    view()
+        .gap_2()
+        .child(
+            view()
+                .flex_row()
+                .justify_between()
+                .items_center()
+                .child(
+                    text("Belichtungskorrektur")
+                        .text_size(px(13.0))
+                        .text_color(move || theme().muted_foreground),
+                )
+                .child(
+                    text(move || format!("{:+.1}", exposure.get()))
+                        .text_size(px(13.0))
+                        .tabular_nums()
+                        .text_color(move || theme().primary),
+                ),
+        )
+        .child(
+            slider()
+                .value(move || SliderValue::Single(exposure.get()))
+                .min(EXPOSURE_MIN)
+                .max(EXPOSURE_MAX)
+                .step(EXPOSURE_STEP)
+                .accessibility_label("Belichtungskorrektur")
+                .on_change(move |next: &SliderValue| {
+                    if let SliderValue::Single(v) = next {
+                        exposure.set(*v);
+                    }
+                })
+                .on_change_end(move |next: &SliderValue| {
+                    let SliderValue::Single(v) = next else {
+                        return;
+                    };
+                    let v = *v as f32;
+                    nsh_core::element::spawn(async move {
+                        let _ = shared_data::api::set_exposure_compensation(v).await;
+                    });
+                })
+                .flex_row()
+                .items_center()
+                .track_style(|s| s.h(px(8.0)).flex_1().px(px(8.0)).rounded_full().bg(move || theme().muted))
+                .indicator_style(|s| s.h_full())
+                .range_style(|s| s.ml(-px(8.0)).rounded_full().bg(move || theme().primary))
+                .thumb_style(|s| {
+                    s.w(px(20.0))
+                        .h(px(20.0))
+                        .rounded_full()
+                        .bg(move || theme().muted_foreground)
+                }),
+        )
+        .child(ticks)
 }
 
 fn enum_section<T>(

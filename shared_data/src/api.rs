@@ -8,5 +8,5 @@ generate_post_api!(set_hdr_active, bool);
 generate_post_api!(set_bitrate, u32);
 generate_post_api!(set_focus_mode, crate::FocusMode);
 generate_post_api!(set_metering_mode, crate::Metering);
-
+generate_post_api!(set_exposure_compensation, f32);
 

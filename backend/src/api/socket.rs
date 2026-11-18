@@ -1,8 +1,5 @@
 use axum::{
-    extract::{
-        State,
-        ws::{Message, WebSocket, WebSocketUpgrade},
-    },
+    extract::ws::{Message, WebSocket, WebSocketUpgrade},
     response::IntoResponse,
 };
 use shared_data::{CameraInterface, Message as SharedMessage};
@@ -10,7 +7,7 @@ use tokio::sync::watch;
 
 pub async fn ws_handler(
     ws: WebSocketUpgrade,
-    State(receiver): State<watch::Receiver<CameraInterface>>,
+    receiver: watch::Receiver<CameraInterface>,
 ) -> impl IntoResponse {
     ws.on_upgrade(move |socket| handle_socket(socket, receiver))
 }
