@@ -2,6 +2,7 @@
 //! and `cargo run` mount.
 
 mod pages;
+mod socket;
 mod stores;
 
 use nsh_base::{nav_page, nav_stack, tab, tabs, theme};
@@ -49,6 +50,11 @@ pub fn App() -> impl IntoElement {
     
     let fahrtenbuch_store = signal(stores::fahrtenbuch::load());
     effect(move || stores::fahrtenbuch::save(&fahrtenbuch_store.get()));
+
+    let camera_interface = signal(shared_data::CameraInterface::new());
+
+    let socket_connected = signal(false);
+    socket::start(socket_connected, camera_interface);
 
     let theme_mode = signal(stores::theme::load());
     effect(move || {
@@ -108,7 +114,7 @@ pub fn App() -> impl IntoElement {
             |route: &Route| format!("{route:?}"),
             move |route, index| match route.get_untracked() {
                 Route::Anzeige => anzeige_einstellungen(routes, index, theme_mode),
-                Route::Kamera => kamera_einstellungen(routes, index),
+                Route::Kamera => kamera_einstellungen(routes, index, camera_interface),
                 Route::FahrtEintrag(id) => {
                     fahrt_eintrag(routes, index, fahrtenbuch_store, id, fahrt_map_open)
                 }

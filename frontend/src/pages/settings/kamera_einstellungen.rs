@@ -27,13 +27,8 @@ const FOCAL_LENGTH_OPTIONS: &[(u8, &str)] = &[
 pub(crate) fn kamera_einstellungen(
     routes: Signal<Vec<Route>>,
     index: ReadSignal<usize>,
+    camera_interface: Signal<CameraInterface>,
 ) -> Screen {
-    let initial = CameraInterface::new();
-    let focal_length = signal(initial.focal_length);
-    let hdr_enabled = signal(initial.hdr_enabled);
-    let bitrate = signal(initial.bitrate);
-    let focus_mode = signal(initial.focus_mode);
-    let metering_mode = signal(initial.metering_mode);
     settings_screen(
         routes,
         index,
@@ -41,27 +36,27 @@ pub(crate) fn kamera_einstellungen(
         "Kamera anpassen",
         view()
             .gap_6()
-            .child(enum_section("Brennweite", FOCAL_LENGTH_OPTIONS, focal_length, move |v: u8| {
+            .child(enum_section("Brennweite", FOCAL_LENGTH_OPTIONS, camera_interface, |c| c.focal_length, move |v: u8| {
                 nsh_core::element::spawn(async move {
                     let _ = shared_data::api::set_focal_length(v).await;
                 });
             }))
-            .child(enum_section("HDR", HDR_OPTIONS, hdr_enabled, move |v: bool| {
+            .child(enum_section("HDR", HDR_OPTIONS, camera_interface, |c| c.hdr_enabled, move |v: bool| {
                 nsh_core::element::spawn(async move {
                     let _ = shared_data::api::set_hdr_active(v).await;
                 });
             }))
-            .child(enum_section("Bitrate", BITRATE_OPTIONS, bitrate, move |v: u32| {
+            .child(enum_section("Bitrate", BITRATE_OPTIONS, camera_interface, |c| c.bitrate, move |v: u32| {
                 nsh_core::element::spawn(async move {
                     let _ = shared_data::api::set_bitrate(v).await;
                 });
             }))
-            .child(enum_section("Fokusmodus", FOCUS_MODE_OPTIONS, focus_mode, move |v: FocusMode| {
+            .child(enum_section("Fokusmodus", FOCUS_MODE_OPTIONS, camera_interface, |c| c.focus_mode, move |v: FocusMode| {
                 nsh_core::element::spawn(async move {
                     let _ = shared_data::api::set_focus_mode(v).await;
                 });
             }))
-            .child(enum_section("Belichtungsmessung", METERING_OPTIONS, metering_mode, move |v: Metering| {
+            .child(enum_section("Belichtungsmessung", METERING_OPTIONS, camera_interface, |c| c.metering_mode, move |v: Metering| {
                 nsh_core::element::spawn(async move {
                     let _ = shared_data::api::set_metering_mode(v).await;
                 });
@@ -72,7 +67,8 @@ pub(crate) fn kamera_einstellungen(
 fn enum_section<T>(
     accessibility_label: &'static str,
     options: &'static [(T, &'static str)],
-    value: Signal<T>,
+    camera_interface: Signal<CameraInterface>,
+    select: fn(&CameraInterface) -> T,
     on_change: impl Fn(T) + 'static,
 ) -> impl IntoElement
 where
@@ -95,7 +91,7 @@ where
             accessibility_label,
             items,
             move || {
-                let current = value.get();
+                let current = select(&camera_interface.get());
                 options
                     .iter()
                     .position(|(v, _)| *v == current)
@@ -106,11 +102,10 @@ where
                     return;
                 };
                 let (selected, _) = options[index];
-                value.set(selected);
                 on_change(selected);
             },
             move || {
-                let current = value.get();
+                let current = select(&camera_interface.get());
                 options
                     .iter()
                     .find(|(v, _)| *v == current)

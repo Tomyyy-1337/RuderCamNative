@@ -26,7 +26,7 @@ fn main() {
                 .merge(shared_data::api::set_bitrate(api::camera_settings::set_bitrate_handler, camera_interface_sender.clone()))
                 .merge(shared_data::api::set_focus_mode(api::camera_settings::set_focus_mode_handler, camera_interface_sender.clone()))
                 .merge(shared_data::api::set_metering_mode(api::camera_settings::set_metering_mode_handler, camera_interface_sender.clone()))
-                // .route("/ws", axum::routing::get(api::socket::ws_handler).with_state(camera_interface_receiver))
+                .route("/ws", axum::routing::get(api::socket::ws_handler).with_state(camera_interface_receiver))
                 .nest_service("/maps", get_service(ServeDir::new("./maps")))
                 .layer(CorsLayer::permissive());
             

@@ -79,6 +79,7 @@ dependencies = [
  "libc",
  "linux-embedded-hal",
  "serde",
+ "serde_json",
  "shared_data",
  "tokio",
  "tower-http",
