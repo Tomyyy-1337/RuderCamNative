@@ -11,14 +11,16 @@ pub async fn ws_handler(
     ws: WebSocketUpgrade,
     camera_interface: watch::Receiver<CameraInterface>,
     battery_state: watch::Receiver<BatteryState>,
+    gps_satelite_count: watch::Receiver<u8>,
 ) -> impl IntoResponse {
-    ws.on_upgrade(move |socket| handle_socket(socket, camera_interface, battery_state))
+    ws.on_upgrade(move |socket| handle_socket(socket, camera_interface, battery_state, gps_satelite_count))
 }
 
 async fn handle_socket(
     mut socket: WebSocket, 
     camera_interface: watch::Receiver<CameraInterface>,
-    battery_state: watch::Receiver<BatteryState>
+    battery_state: watch::Receiver<BatteryState>,
+    gps_satelite_count: watch::Receiver<u8>,
 ) {
     let mut merged_stream = select_all([
         WatchStream::from_changes(camera_interface)
@@ -26,6 +28,9 @@ async fn handle_socket(
             .boxed(),
         WatchStream::from_changes(battery_state)
             .map(SharedMessage::BatteryState)
+            .boxed(),
+        WatchStream::from_changes(gps_satelite_count)
+            .map(SharedMessage::GpsSateliteCount)
             .boxed()
     ]);
 

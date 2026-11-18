@@ -19,8 +19,8 @@ fn apply_message(
         Message::BatteryState(update) => {
             battery.set(update.percentage);
         }
-        Message::GpsSatellites(count) => {
-            satellites.set(count);
+        Message::GpsSateliteCount(satelites) => {
+            satellites.set(satelites);
         }
     }
 }

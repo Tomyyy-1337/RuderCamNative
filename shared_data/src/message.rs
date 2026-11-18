@@ -7,5 +7,5 @@ use crate::{BatteryState, CameraInterface};
 pub enum Message {
     CameraInterfaceUpdate(CameraInterface),
     BatteryState(BatteryState),
-    GpsSatellites(u8),
+    GpsSateliteCount(u8),
 }

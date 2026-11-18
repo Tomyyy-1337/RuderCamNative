@@ -18,3 +18,11 @@ impl FinishedFahrt {
         format!("{:02}:{:02}", total / 3600, (total / 60) % 60)
     }
 }
+
+#[derive(Copy, Clone, Serialize, Deserialize, Debug, PartialEq, Default)]
+pub struct FahrtInfo {
+    pub paused: bool,
+    pub schlag_count: u32,
+    pub distance_traveled: f32,
+    pub active_time: std::time::Duration,
+}
