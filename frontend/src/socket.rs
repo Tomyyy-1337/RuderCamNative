@@ -4,7 +4,6 @@ use nsh_core::prelude::*;
 use shared_data::Message;
 use tokio::sync::mpsc::{UnboundedSender, unbounded_channel};
 
-const SOCKET_URL: &str = "ws://127.0.0.1:3000/ws";
 const RETRY_DELAY: Duration = Duration::from_secs(3);
 
 fn apply_message(message: Message, camera_interface: Signal<shared_data::CameraInterface>) {
@@ -69,9 +68,10 @@ async fn run_session(events: UnboundedSender<SocketEvent>) -> Result<(), String>
 #[cfg(not(target_arch = "wasm32"))]
 async fn read_socket(events: UnboundedSender<SocketEvent>) -> Result<(), String> {
     use futures_util::StreamExt;
-    use tokio_tungstenite::tungstenite::Message as Frame;
+    use shared_data::api::WS_URL;
+use tokio_tungstenite::tungstenite::Message as Frame;
 
-    let (mut socket, _) = tokio_tungstenite::connect_async(SOCKET_URL)
+    let (mut socket, _) = tokio_tungstenite::connect_async(WS_URL)
         .await
         .map_err(|error| error.to_string())?;
     let _ = events.send(SocketEvent::Opened);
@@ -88,10 +88,11 @@ async fn read_socket(events: UnboundedSender<SocketEvent>) -> Result<(), String>
 
 #[cfg(target_arch = "wasm32")]
 async fn run_session(events: UnboundedSender<SocketEvent>) -> Result<(), String> {
-    use wasm_bindgen::{JsCast, closure::Closure};
+    use shared_data::api::WS_URL;
+use wasm_bindgen::{JsCast, closure::Closure};
     use web_sys::{CloseEvent, MessageEvent, WebSocket};
 
-    let socket = WebSocket::new(SOCKET_URL).map_err(|error| format!("{error:?}"))?;
+    let socket = WebSocket::new(WS_URL).map_err(|error| format!("{error:?}"))?;
     let (closed_tx, closed_rx) = tokio::sync::oneshot::channel::<()>();
 
     let open_events = events.clone();

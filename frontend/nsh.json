@@ -5,10 +5,11 @@
   "build": 1,
   "rust": ".",
   "root": "App",
+  "android": { "usesCleartextTraffic": true },
   "capabilities": {
     "statusBar": true,
     "network": {
-      "hosts": ["127.0.0.1", "maps.passberg.net"]
+      "hosts": ["127.0.0.1", "maps.passberg.net", "192.168.178.77"]
     },
     "webview": {
       "hosts": ["maps.passberg.net"]

@@ -18,7 +18,7 @@ fn main() {
             
             let (camera_interface_sender, camera_interface_receiver) = watch::channel(camera_interface_initial);
             
-            let addr = SocketAddr::from(([0, 0, 0, 0], 3000));
+            let addr = SocketAddr::from(([0, 0, 0, 0], 8140));
             let app = Router::new()
                 .route("/", axum::routing::get(|| async { "Hello, World!" }))
                 .merge(shared_data::api::set_focal_length(api::camera_settings::set_focal_length_handler, camera_interface_sender.clone()))
@@ -31,7 +31,7 @@ fn main() {
                 .layer(CorsLayer::permissive());
             
             let listener = tokio::net::TcpListener::bind(addr).await.expect("Failed to bind to address");
-            println!("Server running on http://127.0.0.1:3000");
+            println!("Server running on http://127.0.0.1:8140");
             let _ = axum::serve(listener, app).await;
         });
 }
