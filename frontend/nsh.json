@@ -1,13 +1,17 @@
 {
-  "name": "treiber_nsh",
+  "name": "nsh-app-frontend",
   "id": "com.example.treibernsh",
   "version": "1.0.0",
   "build": 1,
   "rust": ".",
   "root": "App",
   "capabilities": {
+    "statusBar": true,
     "network": {
       "hosts": ["127.0.0.1", "maps.passberg.net"]
+    },
+    "webview": {
+      "hosts": ["maps.passberg.net"]
     }
   }
 }

@@ -12,3 +12,6 @@ pub use camera_interface::*;
 
 pub(crate) mod api_macro;
 pub mod api;
+
+mod message;
+pub use message::Message;

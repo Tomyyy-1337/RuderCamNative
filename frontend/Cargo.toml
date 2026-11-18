@@ -1,5 +1,5 @@
 [package]
-name = "nsh-app-treiber-nsh"
+name = "nsh-app-frontend"
 version = "0.1.0"
 edition = "2024"
 publish = false
@@ -7,13 +7,15 @@ publish = false
 [workspace]
 
 [dependencies]
-nsh-core = "0.5.1"
-nsh-base = "0.5.1"
+nsh-core = "0.6.0"
+nsh-base = "0.6.0"
 env_logger = "0.11"
 chrono = "0.4"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 shared_data = { path = "../shared_data", features = ["frontend"] }
+futures-util = "0.3"
+tokio = { version = "1", features = ["sync"] }
 
 [target.'cfg(target_os = "linux")'.dependencies]
 nsh-platform-linux = { version = "0.5.1", default-features = false, features = ["shader", "editor", "emoji-picker", "highlight", "math", "plot", "rich-editor", "term"] }
@@ -24,18 +26,9 @@ nsh-platform-macos = { version = "0.5.1", default-features = false, features = [
 [target.'cfg(target_os = "windows")'.dependencies]
 nsh-platform-windows = { version = "0.5.1", default-features = false, features = ["shader", "editor", "emoji-picker", "highlight", "math", "plot", "rich-editor", "term"] }
 
-[build-dependencies]
-ureq = "3.5.2"
 
 [profile.dev]
 opt-level = 1
 
 [profile.dev.package."*"]
 opt-level = 3
-
-
-[profile.release]
-lto = true
-codegen-units = 1
-strip = true
-opt-level = "s"

@@ -1,3 +1,7 @@
+# Download dependencies
+```bash
+powershell -ExecutionPolicy Bypass -File .\download_dependencies.ps1
+```
 # treiber_nsh
 
 An app written in Rust: its UI is `src/lib.rs`, and `nsh.json` names the root component (`"root": "App"`).

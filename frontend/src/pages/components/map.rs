@@ -1,3 +1,5 @@
+use nsh_core::element::{FileAsset, asset};
+
 // Placeholder route, replace with the real GPS points as (latitude, longitude).
 pub(crate) const ROUTE: [(f64, f64); 5] = [
     (52.5200, 13.4050),
@@ -22,15 +24,15 @@ pub(crate) fn map_html(interactive: bool, route: &[(f64, f64)]) -> String {
         )
         .replace(
             "__MAPLIBRE_CSS__",
-            include_str!(concat!(env!("OUT_DIR"), "/maplibre-gl.css")),
+            include_str!("../../../vendor/maplibre-gl.css"),
         )
         .replace(
             "__MAPLIBRE_JS__",
-            include_str!(concat!(env!("OUT_DIR"), "/maplibre-gl.js")),
+            include_str!("../../../vendor/maplibre-gl.js"),
         )
         .replace(
             "__PMTILES_JS__",
-            include_str!(concat!(env!("OUT_DIR"), "/pmtiles.js")),
+            include_str!("../../../vendor/pmtiles.js"),
         )
 }
 

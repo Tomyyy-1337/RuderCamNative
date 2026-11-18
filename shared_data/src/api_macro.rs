@@ -1,40 +1,28 @@
 #[macro_export]
-macro_rules! generate_api {
+macro_rules! generate_post_api {
     (
         $name:ident,
         $type:ty
     ) => {
         #[cfg(feature = "frontend")]
-        use nsh_core::prelude::*;
-
-        #[cfg(feature = "frontend")]
-        pub fn $name(value: $type) {
-            spawn(async move {
-                let request = HttpRequest::post(concat!("http://127.0.0.1:3000/api/", stringify!($name)), serde_json::to_vec(&value).unwrap())
-                    .header("Content-Type", "application/json");
-                let _ = fetch(request).await;
-            });
+        #[doc = concat!("Sends a POST request to the backend API endpoint at `/api/", stringify!($name), "` with the given value serialized as JSON.")]
+        pub async fn $name(value: $type) -> std::result::Result<nsh_core::element::HttpResponse, std::string::String> {
+            let request = nsh_core::platform::HttpRequest::post(format!("{}{}", $crate::api::API_BASE_URL, stringify!($name)), serde_json::to_vec(&value).unwrap())
+                .header("Content-Type", "application/json");
+            nsh_core::element::fetch(request).await
         }
 
         #[cfg(feature = "backend")]
-        use std::future::Future;
-        #[cfg(feature = "backend")]
-        use axum::{
-            extract::State,
-            http::StatusCode,
-            routing::post,
-            Json, Router,
-        };
-
-        #[cfg(feature = "backend")]
-        pub fn $name<S, F, Fut>(handler: F) -> Router<S>
+        #[doc = concat!("Registers a backend API endpoint at `/api/", stringify!($name), "`.")]
+        #[doc = concat!("The handler function will be called with the provided state and the value sent in the POST request body.")]
+        pub fn $name<S, F, Fut>(handler: F, state: S) -> axum::Router
         where
             F: Fn(S, $type) -> Fut + Clone + Send + Sync + 'static,
             S: Clone + Send + Sync + 'static,
-            Fut: Future<Output = StatusCode> + Send + 'static,
+            Fut: std::future::Future<Output = axum::http::StatusCode> + Send + 'static,
         {
-            let route = post(move |State(state): State<S>, Json(value): Json<$type>| handler(state, value) );
-            Router::new().route(concat!("/api/", stringify!($name)), route)
+            let route = axum::routing::post(move |axum::Json(value): axum::Json<$type>| handler(state, value) );
+            axum::Router::new().route(concat!("/api/", stringify!($name)), route)
         }
     };
 }
