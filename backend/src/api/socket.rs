@@ -28,14 +28,16 @@ pub async fn ws_handler(
 
 async fn handle_socket(
     mut socket: WebSocket, 
-    camera_interface: watch::Receiver<CameraInterface>,
+    mut camera_interface: watch::Receiver<CameraInterface>,
     battery_receiver: watch::Receiver<BatteryState>,
     gps_satelite_count: watch::Receiver<u8>,
     mut finished_fahrt: watch::Receiver<FinishedFahrt>,
     current_stats: watch::Receiver<shared_data::CurrentStats>,
-    fahrt_info: watch::Receiver<Option<shared_data::FahrtInfo>>,
+    mut fahrt_info: watch::Receiver<Option<shared_data::FahrtInfo>>,
 ) {
     finished_fahrt.mark_unchanged();
+    fahrt_info.mark_changed();
+    camera_interface.mark_changed();
 
     let mut merged_stream = select_all([
         WatchStream::from_changes(camera_interface)

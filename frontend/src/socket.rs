@@ -111,7 +111,7 @@ async fn run_session(events: UnboundedSender<SocketEvent>) -> Result<(), String>
 async fn read_socket(events: UnboundedSender<SocketEvent>) -> Result<(), String> {
     use futures_util::StreamExt;
     use shared_data::api::WS_URL;
-use tokio_tungstenite::tungstenite::Message as Frame;
+    use tokio_tungstenite::tungstenite::Message as Frame;
 
     let (mut socket, _) = tokio_tungstenite::connect_async(WS_URL)
         .await

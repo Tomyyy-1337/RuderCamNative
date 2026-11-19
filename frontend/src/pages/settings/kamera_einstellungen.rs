@@ -100,12 +100,12 @@ fn exposure_compensation_section(camera_interface: Signal<CameraInterface>) -> i
                 .justify_between()
                 .items_center()
                 .child(
-                    text("Belichtungskorrektur")
+                    text("Belichtungskorrektur").max_font_size_multiplier(crate::MAX_FONT_SCALE_MULTIPLIER)
                         .text_size(px(13.0))
                         .text_color(move || theme().muted_foreground),
                 )
                 .child(
-                    text(move || format!("{:+.1}", exposure.get()))
+                    text(move || format!("{:+.1}", exposure.get())).max_font_size_multiplier(crate::MAX_FONT_SCALE_MULTIPLIER)
                         .text_size(px(13.0))
                         .tabular_nums()
                         .text_color(move || theme().primary),
@@ -166,7 +166,7 @@ where
     view()
         .gap_2()
         .child(
-            text(accessibility_label)
+            text(accessibility_label).max_font_size_multiplier(crate::MAX_FONT_SCALE_MULTIPLIER)
                 .text_size(px(13.0))
                 .text_color(move || theme().muted_foreground),
         )

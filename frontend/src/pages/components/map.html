@@ -29,7 +29,7 @@
     </head>
     <body>
         <div id="map"></div>
-        <div id="loading">Loading...</div>
+        <div id="loading"></div>
         <script>
             function report(s) {
                 if (window.nsh) window.nsh.postMessage(s);
@@ -39,12 +39,6 @@
                 document.getElementById("loading").textContent = "Map error: " + m;
                 report("error: " + m);
             };
-
-            if (!__INTERACTIVE__) {
-                document.addEventListener("click", function () {
-                    report("open");
-                });
-            }
         </script>
         <script>
             const ARCHIVE = "https://maps.passberg.net/germany.pmtiles";
@@ -78,27 +72,30 @@
                     attributionControl: false,
                 });
 
+                const bounds = ROUTE.reduce(
+                    function (b, c) { return b.extend(c); },
+                    new maplibregl.LngLatBounds(ROUTE[0], ROUTE[0])
+                );
+                map.fitBounds(bounds, { padding: 24, animate: false });
+
+                let shown = false;
+                map.on("sourcedataloading", function (e) {
+                    if (!e.tile || shown) return;
+                    shown = true;
+                    document.getElementById("loading").remove();
+                    report("map ready");
+                });
+
                 map.on("idle", function () {
                     report("map idle");
                 });
 
                 map.on("load", function () {
                     report("map loaded " + innerWidth + "x" + innerHeight);
-                    document.getElementById("loading").remove();
-
                     map.getSource("waypoint-path").setData({
                         type: "Feature",
                         properties: {},
                         geometry: { type: "LineString", coordinates: ROUTE },
-                    });
-
-                    const bounds = ROUTE.reduce(
-                        function (b, c) { return b.extend(c); },
-                        new maplibregl.LngLatBounds(ROUTE[0], ROUTE[0])
-                    );
-                    map.fitBounds(bounds, { padding: 24, animate: false });
-                    requestAnimationFrame(function () {
-                        requestAnimationFrame(function () { report("map ready"); });
                     });
                 });
 

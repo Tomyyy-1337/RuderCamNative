@@ -13,9 +13,9 @@ pub(crate) fn einstellungen(routes: Signal<Vec<Route>>) -> impl IntoElement {
         .child(
             view()
                 .gap_1()
-                .child(text("Lokale Einstellungen").text_size(px(28.0)))
+                .child(text("Lokale Einstellungen").max_font_size_multiplier(crate::MAX_FONT_SCALE_MULTIPLIER).text_size(px(28.0)))
                 .child(
-                    text("Einstellungen für die App")
+                    text("Einstellungen für die App").max_font_size_multiplier(crate::MAX_FONT_SCALE_MULTIPLIER)
                         .text_size(px(14.0))
                         .text_color(move || theme().muted_foreground),
                 ),
@@ -45,11 +45,11 @@ fn settings_link(label: &'static str, on_press: impl Fn() + 'static) -> impl Int
                 .child(
                     view()
                         .flex_1()
-                        .child(text(label).text_size(px(16.0)))
+                        .child(text(label).max_font_size_multiplier(crate::MAX_FONT_SCALE_MULTIPLIER).text_size(px(16.0)))
                         .text_color(move || theme().card_foreground),
                 )
                 .child(
-                    text("›")
+                    text("›").max_font_size_multiplier(crate::MAX_FONT_SCALE_MULTIPLIER)
                         .text_size(px(22.0))
                         .text_color(move || theme().muted_foreground),
                 ),

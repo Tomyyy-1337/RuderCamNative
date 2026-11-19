@@ -1,3 +1,5 @@
+use std::time::Duration;
+
 use nsh_base::{button, nav_page, theme};
 use nsh_core::prelude::*;
 use shared_data::FinishedFahrt;
@@ -53,6 +55,7 @@ pub(crate) fn fahrt_eintrag(
                             .child(
                                 view()
                                     .gap_6()
+                                    .pb_6()
                                     .child(route_section(preview_points.clone(), map_open))
                                     .child(distance_card(fahrt.distance_traveled))
                                     .child(stats(fahrt.clone()))
@@ -77,12 +80,12 @@ fn distance_card(distance: f32) -> impl IntoElement {
         .rounded(px(16.0))
         .bg(move || theme().muted)
         .child(
-            text("Distanz")
+            text("Distanz").max_font_size_multiplier(crate::MAX_FONT_SCALE_MULTIPLIER)
                 .text_size(px(13.0))
                 .text_color(move || theme().muted_foreground),
         )
         .child(
-            text(format!("{:.1} km", distance))
+            text(format!("{:.1} km", distance)).max_font_size_multiplier(crate::MAX_FONT_SCALE_MULTIPLIER)
                 .text_size(px(32.0))
                 .text_color(move || theme().card_foreground),
         )
@@ -128,6 +131,7 @@ fn delete_button(armed: Signal<bool>, on_confirm: impl Fn() + 'static) -> impl I
             text(move || {
                 if armed.get() { "Löschen bestätigen" } else { "Fahrt löschen" }.to_string()
             })
+            .max_font_size_multiplier(crate::MAX_FONT_SCALE_MULTIPLIER)
             .text_size(px(16.0))
             .text_color(move || {
                 if armed.get() { theme().background } else { theme().destructive }
@@ -144,19 +148,46 @@ fn stat_cell(label: &'static str, value: String) -> impl IntoElement {
         .rounded(px(12.0))
         .bg(move || theme().muted)
         .child(
-            text(label)
+            text(label).max_font_size_multiplier(crate::MAX_FONT_SCALE_MULTIPLIER)
                 .text_size(px(13.0))
                 .text_color(move || theme().muted_foreground),
         )
         .child(
-            text(value)
+            text(value).max_font_size_multiplier(crate::MAX_FONT_SCALE_MULTIPLIER)
                 .text_size(px(20.0))
                 .text_color(move || theme().card_foreground),
         )
 }
 
+fn map_hint() -> impl IntoElement {
+    view()
+        .absolute()
+        .bottom(px(0.0))
+        .right(px(0.0))
+        .w_full()
+        .h_full()
+        .items_center()
+        .justify_center()
+        .child(
+            view()
+                .absolute()
+                .bottom(px(0.0))
+                .right(px(0.0))
+                .w_full()
+                .h_full()
+                .bg(move || rgb(0x000000))
+                .opacity(move || 0.6_f32),
+        )
+        .child(
+            text("Noch mal drücken um Vollbild zu aktivieren").max_font_size_multiplier(crate::MAX_FONT_SCALE_MULTIPLIER)
+                .text_size(px(15.0))
+                .text_color(move || rgb(0xffffff)),
+        )
+}
+
 fn route_section(points: Vec<(f64, f64)>, map_open: Signal<bool>) -> impl IntoElement {
     let map_idle_count = signal(0_u32);
+    let hint_visible = signal(false);
     let section = view()
         .w_full()
         .h(px(320.0))
@@ -172,28 +203,71 @@ fn route_section(points: Vec<(f64, f64)>, map_open: Signal<bool>) -> impl IntoEl
     let map_ready = signal(false);
     if points.is_empty() {
         section.items_center().justify_center().child(
-            text("Keine Wegpunkte")
+            text("Keine Wegpunkte").max_font_size_multiplier(crate::MAX_FONT_SCALE_MULTIPLIER)
                 .text_size(px(15.0))
                 .text_color(move || theme().muted_foreground),
         )
     } else {
-        section.child(
-            web_view_html(map_html(false, &points), None)
-                .bg(move || theme().background)
-                .opacity(move || if map_ready.get() { 1.0_f32 } else { 0.0_f32 })
-                .scrollable(false)
-                .on_message(move |data: &str| {
-                    if data == "open" {
-                        map_open.set(true);
-                    } else if data == "map idle" {
-                        map_idle_count.update(|n| *n += 1);
-                    } else if data == "map ready" {
-                        map_ready.set(true);
-                    }
-                })
-                .w_full()
-                .h_full(),
-        )
+        section
+            .child(
+                web_view_html(map_html(false, &points), None)
+                    .bg(move || theme().background)
+                    .opacity(move || if map_ready.get() { 1.0_f32 } else { 0.0_f32 })
+                    .scrollable(false)
+                    .on_message(move |data: &str| {
+                        if data == "map idle" {
+                            map_idle_count.update(|n| *n += 1);
+                        } else if data == "map ready" {
+                            map_ready.set(true);
+                        }
+                    })
+                    .w_full()
+                    .h_full(),
+            )
+            .child(when(move || hint_visible.get(), map_hint))
+            .child(
+                button()
+                    .absolute()
+                    .bottom(px(0.0))
+                    .right(px(0.0))
+                    .w_full()
+                    .h_full()
+                    .on_press(move || {
+                        if hint_visible.get_untracked() {
+                            map_open.set(true);
+                        } else {
+                            hint_visible.set(true);
+                            nsh_core::element::spawn(async move {
+                                timer(Duration::from_millis(750)).await;
+                                hint_visible.set(false);
+                            });
+                        }
+                    })
+                    .child(view()),
+            )
+            .child(
+                view()
+                    .absolute()
+                    .bottom(px(0.0))
+                    .right(px(0.0))
+                    .child(
+                        button()
+                            .m_2()
+                            .w(px(36.0))
+                            .h(px(36.0))
+                            .rounded(px(18.0))
+                            .items_center()
+                            .justify_center()
+                            .bg(move || theme().muted)
+                            .on_press(move || map_open.set(true))
+                            .child(
+                                text("⛶")
+                                    .max_font_size_multiplier(crate::MAX_FONT_SCALE_MULTIPLIER)
+                                    .text_size(px(16.0))
+                                    .text_color(move || theme().foreground),
+                            ),
+                    ),
+            )
     }
 }
 
@@ -241,7 +315,7 @@ fn fullscreen_map(map_open: Signal<bool>, points: Vec<(f64, f64)>) -> impl IntoE
                         .on_press(move || map_open.set(false))
                         .child(
                             text("⛶")
-                                .text_size(px(18.0))
+                                .max_font_size_multiplier(crate::MAX_FONT_SCALE_MULTIPLIER).text_size(px(18.0))
                                 .text_color(move || theme().foreground),
                         ),
                 ),

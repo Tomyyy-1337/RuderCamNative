@@ -36,7 +36,7 @@ pub(crate) fn home(
                             "Fahrt starten"
                         })
                     })
-                    .text_size(px(17.0))
+                    .max_font_size_multiplier(crate::MAX_FONT_SCALE_MULTIPLIER).text_size(px(17.0))
                     .text_color(move || {
                         if socket_connected.get() { theme().primary_foreground } else { theme().muted_foreground }
                     }),

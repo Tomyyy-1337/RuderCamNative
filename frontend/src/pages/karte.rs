@@ -47,7 +47,7 @@ pub(crate) fn karte_view(karte_open: Signal<bool>) -> impl IntoElement {
                         .bg(move || theme().muted)
                         .on_press(move || karte_open.set(false))
                         .child(
-                            text("⛶")
+                            text("⛶").max_font_size_multiplier(crate::MAX_FONT_SCALE_MULTIPLIER)
                                 .text_size(px(18.0))
                                 .text_color(move || theme().foreground),
                         ),

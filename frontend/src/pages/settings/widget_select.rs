@@ -32,7 +32,7 @@ pub(crate) fn widget_select(
                 .items_center()
                 .px_3()
                 .child(
-                    text(item.title.clone())
+                    text(item.title.clone()).max_font_size_multiplier(crate::MAX_FONT_SCALE_MULTIPLIER)
                         .text_size(px(15.0))
                         .text_color(move || theme().popover_foreground),
                 )
@@ -49,10 +49,10 @@ pub(crate) fn widget_select(
                 .bg(move || theme().muted)
                 .active(|s| s.opacity(0.6))
                 .child(
-                    text(move || selected_label())
+                    text(move || selected_label()).max_font_size_multiplier(crate::MAX_FONT_SCALE_MULTIPLIER)
                         .text_size(px(15.0))
                         .text_color(move || theme().card_foreground),
                 )
-                .child(text("▾").text_color(move || theme().muted_foreground)),
+                .child(text("▾").max_font_size_multiplier(crate::MAX_FONT_SCALE_MULTIPLIER).text_color(move || theme().muted_foreground)),
         )
 }

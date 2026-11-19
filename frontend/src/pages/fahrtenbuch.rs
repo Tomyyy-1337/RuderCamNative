@@ -51,12 +51,12 @@ fn stat_box(value: String, label: String) -> impl IntoElement {
         .rounded(px(16.0))
         .bg(move || theme().muted)
         .child(
-            text(value)
+            text(value).max_font_size_multiplier(crate::MAX_FONT_SCALE_MULTIPLIER)
                 .text_size(px(24.0))
                 .text_color(move || theme().card_foreground),
         )
         .child(
-            text(label)
+            text(label).max_font_size_multiplier(crate::MAX_FONT_SCALE_MULTIPLIER)
                 .text_size(px(14.0))
                 .text_color(move || theme().muted_foreground),
         )
@@ -74,6 +74,7 @@ fn entry_list(routes: Signal<Vec<Route>>, store: Signal<Fahrtenbuch>) -> impl In
         })
     })
     .header(view().gap_4().child(overview(store)).child(divider()))
+    .footer(view().h(px(24.0)))
     .keys(move || list_rows.with(Vec::clone))
     .estimated_item_size(px(72.0))
     .row_gap(px(14.0))
@@ -107,7 +108,7 @@ fn fahrtenbuch_entry(routes: Signal<Vec<Route>>, row: Memo<Row>) -> nsh_base::Bu
                         .flex_1()
                         .gap_2()
                         .child(
-                            text(move || row.with(Row::title))
+                            text(move || row.with(Row::title)).max_font_size_multiplier(crate::MAX_FONT_SCALE_MULTIPLIER)
                                 .text_size(px(16.0))
                                 .text_color(move || theme().card_foreground),
                         )
@@ -120,7 +121,7 @@ fn fahrtenbuch_entry(routes: Signal<Vec<Route>>, row: Memo<Row>) -> nsh_base::Bu
                         ),
                 )
                 .child(
-                    text("›")
+                    text("›").max_font_size_multiplier(crate::MAX_FONT_SCALE_MULTIPLIER)
                         .text_size(px(22.0))
                         .text_color(move || theme().muted_foreground),
                 ),
@@ -129,7 +130,7 @@ fn fahrtenbuch_entry(routes: Signal<Vec<Route>>, row: Memo<Row>) -> nsh_base::Bu
 
 fn month_label(row: Memo<Row>) -> View {
     view().px_1().pt_2().child(
-        text(move || row.with(Row::title))
+        text(move || row.with(Row::title)).max_font_size_multiplier(crate::MAX_FONT_SCALE_MULTIPLIER)
             .text_size(px(16.0))
             .text_color(move || theme().muted_foreground),
     )
@@ -206,7 +207,7 @@ fn pill(label: impl Fn() -> String + 'static) -> impl IntoElement {
         .rounded(px(999.0))
         .bg(move || theme().background)
         .child(
-            text(label)
+            text(label).max_font_size_multiplier(crate::MAX_FONT_SCALE_MULTIPLIER)
                 .text_size(px(14.0))
                 .text_color(move || theme().muted_foreground),
         )

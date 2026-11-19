@@ -19,6 +19,7 @@ fn battery_view(percentage: Signal<u8>) -> impl IntoElement {
         )
         .child(
             text(move || format!("{}%", percentage.get()))
+                .allow_font_scaling(false)
                 .text_size(px(13.0))
                 .font_weight(FontWeight::BOLD),
         )

@@ -59,9 +59,9 @@ pub(crate) fn settings_page_wrapper(
                         view()
                             .flex_1()
                             .gap_1()
-                            .child(text(title).text_size(px(28.0)))
+                            .child(text(title).max_font_size_multiplier(crate::MAX_FONT_SCALE_MULTIPLIER).text_size(px(28.0)))
                             .child(
-                                text(subtitle)
+                                text(subtitle).max_font_size_multiplier(crate::MAX_FONT_SCALE_MULTIPLIER)
                                     .text_size(px(14.0))
                                     .text_color(move || theme().muted_foreground),
                             ),
@@ -80,7 +80,7 @@ pub(crate) fn settings_page_wrapper(
                                     .items_center()
                                     .justify_center()
                                     .child(
-                                        text("✕")
+                                        text("✕").max_font_size_multiplier(crate::MAX_FONT_SCALE_MULTIPLIER)
                                             .text_size(px(16.0))
                                             .text_color(move || theme().foreground),
                                     ),

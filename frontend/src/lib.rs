@@ -35,6 +35,8 @@ const PAGES: [(Page, &str); 3] = [
     (Page::Einstellungen, "Settings"),
 ];
 
+pub(crate) const MAX_FONT_SCALE_MULTIPLIER: f32 = 1.15;
+
 /// The app's UI set (`nsh.json` `"rust"`): what a TSX entry may import from
 /// `treiber-nsh/native` (`README.md`, "Adding a TSX entry").
 #[native_module("treiber-nsh/native")]
@@ -141,7 +143,7 @@ pub fn App() -> impl IntoElement {
 fn navbar(page: Signal<Page>) -> impl IntoElement {
     let mut bar = tabs()
         .flex_row()
-        .p_1()
+        .p_2()
         .rounded(px(10.0))
         .bg(move || theme().muted);
     for (item, label) in PAGES {
@@ -160,7 +162,7 @@ fn navbar(page: Signal<Page>) -> impl IntoElement {
                 })
                 .selected(move || page.get() == item)
                 .on_press(move || page.set(item))
-                .child(text(label).text_size(px(15.0)).text_color(move || {
+                .child(text(label).allow_font_scaling(false).text_size(px(16.0)).text_color(move || {
                     if page.get() == item {
                         theme().primary_foreground
                     } else {
@@ -203,7 +205,7 @@ fn tabs_content(
                                 .items_start()
                                 .child(battery_indicator(battery_state, socket_connected)),
                         )
-                        .child(text("Ruder Cam Beta").text_size(px(20.0)))
+                        .child(text("Ruder Cam Beta").allow_font_scaling(false).text_size(px(20.0)))
                         .child(
                             view()
                                 .flex_1()

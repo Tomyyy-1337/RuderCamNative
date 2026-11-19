@@ -28,7 +28,7 @@ fn theme_section(theme_mode: Signal<ThemeMode>) -> impl IntoElement {
     view()
         .gap_2()
         .child(
-            text("Design")
+            text("Design").max_font_size_multiplier(crate::MAX_FONT_SCALE_MULTIPLIER)
                 .text_size(px(13.0))
                 .text_color(move || theme().muted_foreground),
         )
@@ -62,7 +62,7 @@ fn theme_option(
                 theme().muted
             }
         })
-        .child(text(label).text_size(px(15.0)).text_color(move || {
+        .child(text(label).max_font_size_multiplier(crate::MAX_FONT_SCALE_MULTIPLIER).text_size(px(15.0)).text_color(move || {
             if theme_mode.get() == mode {
                 theme().card_foreground
             } else {
