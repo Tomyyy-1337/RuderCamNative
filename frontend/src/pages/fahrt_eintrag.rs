@@ -29,7 +29,6 @@ pub(crate) fn fahrt_eintrag(
         .map(|p| (p.latitude, p.longitude))
         .collect();
     let preview_points = points.clone();
-    let map_idle_count = signal(0_u32);
     let delete_armed = signal(false);
 
     nav_page()
@@ -54,7 +53,7 @@ pub(crate) fn fahrt_eintrag(
                             .child(
                                 view()
                                     .gap_6()
-                                    .child(route_section(preview_points.clone(), map_open, map_idle_count))
+                                    .child(route_section(preview_points.clone(), map_open))
                                     .child(distance_card(fahrt.distance_traveled))
                                     .child(stats(fahrt.clone()))
                                     .child(delete_button(delete_armed, move || {
@@ -156,11 +155,8 @@ fn stat_cell(label: &'static str, value: String) -> impl IntoElement {
         )
 }
 
-fn route_section(
-    points: Vec<(f64, f64)>,
-    map_open: Signal<bool>,
-    map_idle_count: Signal<u32>,
-) -> impl IntoElement {
+fn route_section(points: Vec<(f64, f64)>, map_open: Signal<bool>) -> impl IntoElement {
+    let map_idle_count = signal(0_u32);
     let section = view()
         .w_full()
         .h(px(320.0))
