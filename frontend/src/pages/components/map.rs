@@ -1,5 +1,3 @@
-use nsh_core::element::{FileAsset, asset};
-
 // Placeholder route, replace with the real GPS points as (latitude, longitude).
 pub(crate) const ROUTE: [(f64, f64); 5] = [
     (52.5200, 13.4050),

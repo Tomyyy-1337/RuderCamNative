@@ -14,7 +14,7 @@ macro_rules! generate_post_api {
 
         #[cfg(feature = "backend")]
         #[doc = concat!("Registers a backend API endpoint at `/api/", stringify!($name), "`.")]
-        #[doc = concat!("The handler function will be called with the provided state and the value sent in the POST request body.")]
+        #[doc = concat!("Send data to this endpoint as a POST request with the value serialized as JSON.")]
         pub fn $name<S, F, Fut>(handler: F, state: S) -> axum::Router
         where
             F: Fn(S, $type) -> Fut + Clone + Send + Sync + 'static,

@@ -4,6 +4,8 @@ use nsh_core::prelude::*;
 use shared_data::Message;
 use tokio::sync::mpsc::{UnboundedSender, unbounded_channel};
 
+use crate::stores::fahrtenbuch;
+
 const RETRY_DELAY: Duration = Duration::from_secs(3);
 
 fn apply_message(
@@ -11,6 +13,9 @@ fn apply_message(
     camera_interface: Signal<shared_data::CameraInterface>,
     battery: Signal<u8>,
     satellites: Signal<u8>,
+    fahrtenbuch: Signal<fahrtenbuch::Fahrtenbuch>,
+    current_stats: Signal<shared_data::CurrentStats>,
+    fahrt_info: Signal<Option<shared_data::FahrtInfo>>,
 ) {
     match message {
         Message::CameraInterfaceUpdate(update) => {
@@ -21,6 +26,15 @@ fn apply_message(
         }
         Message::GpsSateliteCount(satelites) => {
             satellites.set(satelites);
+        }
+        Message::FinishedFahrt(fahrt) => {
+            fahrtenbuch.update(|fb| fb.add_entry(fahrt));
+        }
+        Message::CurrentStats(stats) => {
+            current_stats.set(stats);
+        }
+        Message::FahrtInfoUpdate(info) => {
+            fahrt_info.set(info);
         }
     }
 }
@@ -38,6 +52,9 @@ pub fn start(
     camera_interface: Signal<shared_data::CameraInterface>,
     battery: Signal<u8>,
     satellites: Signal<u8>,
+    fahrtenbuch: Signal<fahrtenbuch::Fahrtenbuch>,
+    current_stats: Signal<shared_data::CurrentStats>,
+    fahrt_info: Signal<Option<shared_data::FahrtInfo>>,
 ) {
     let (events, mut received) = unbounded_channel();
 
@@ -47,7 +64,14 @@ pub fn start(
                 SocketEvent::Opened => connected.set(true),
                 SocketEvent::Closed => connected.set(false),
                 SocketEvent::Message(message) => {
-                    apply_message(message, camera_interface.clone(), battery.clone(), satellites.clone())
+                    apply_message(message, 
+                        camera_interface, 
+                        battery, 
+                        satellites, 
+                        fahrtenbuch, 
+                        current_stats,
+                        fahrt_info
+                    );
                 }
             }
         }

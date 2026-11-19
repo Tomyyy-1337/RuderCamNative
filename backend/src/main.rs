@@ -1,11 +1,11 @@
 use std::net::SocketAddr;
 
 use axum::{Router, routing::get_service};
-use shared_data::FinishedFahrt;
+use shared_data::{CurrentStats, FahrtInfo, FinishedFahrt};
 use tokio::{runtime::LocalOptions, sync::watch};
 use tower_http::{cors::CorsLayer, services::ServeDir};
 
-use crate::{hardware_interface::i2c_interface::I2cInterface, tasks::{reader_battery, reader_gps, update_camera::update_camera_task}};
+use crate::{hardware_interface::i2c_interface::I2cInterface, tasks::{reader_accelerometer::read_accelerometer_task, reader_battery::read_battery_task, reader_gps::read_gps_task, send_current_stats::send_current_stats_task, send_fahrt_info::send_fahrt_info_task, update_camera::update_camera_task}};
 
 mod api;
 mod hardware_interface;
@@ -23,7 +23,6 @@ fn main() {
         .build_local(LocalOptions::default())
         .unwrap()
         .block_on(async {
-
             let camera_interface_initial = shared_data::CameraInterface::new();
             
             let (camera_interface_sender, camera_interface_receiver) = watch::channel(camera_interface_initial);
@@ -32,10 +31,16 @@ fn main() {
             let (velocity_sender, velocity_receiver) = watch::channel(0.0);
             let (fahrt_sender, fahrt_receiver) = watch::channel(None);
             let (finished_fahrt_sender, finished_fahrt_receiver) = watch::channel(FinishedFahrt::default());
+            let (bpm_sender, bpm_receiver) = watch::channel(0.0);
+            let (current_stats_sender, current_stats_receiver) = watch::channel(CurrentStats { bpm: 0.0, velocity: 0.0 });
+            let (fahrt_info_sender, fahrt_info_receiver) = watch::channel(None::<FahrtInfo>);
 
             tokio::task::spawn_local(update_camera_task(camera_interface_receiver.clone()));
-            tokio::task::spawn_local(reader_battery::read_battery_task(battery_sender.clone()));
-            tokio::task::spawn_local(reader_gps::read_gps_task(gps_satelite_count_sender,velocity_sender,fahrt_sender.clone()));
+            tokio::task::spawn_local(read_battery_task(battery_sender));
+            tokio::task::spawn_local(read_gps_task(gps_satelite_count_sender,velocity_sender,fahrt_sender.clone()));
+            tokio::task::spawn_local(read_accelerometer_task(fahrt_sender.clone(), bpm_sender)); 
+            tokio::task::spawn_local(send_current_stats_task(bpm_receiver, velocity_receiver, current_stats_sender));
+            tokio::task::spawn_local(send_fahrt_info_task(fahrt_receiver, fahrt_info_sender));
 
             let addr = SocketAddr::from(([0, 0, 0, 0], 8140));
             let app = Router::new()
@@ -51,6 +56,9 @@ fn main() {
                     camera_interface_receiver,
                     battery_receiver,
                     gps_satelite_count_receiver,
+                    finished_fahrt_receiver,
+                    current_stats_receiver,
+                    fahrt_info_receiver
                 )))
                 .nest_service("/maps", get_service(ServeDir::new("./maps")))
                 .layer(CorsLayer::permissive());

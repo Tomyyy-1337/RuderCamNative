@@ -4,6 +4,9 @@ pub use date_time::SerializableDateTime;
 mod fahrt;
 pub use fahrt::{FinishedFahrt, FahrtInfo};
 
+mod current_stats;
+pub use current_stats::CurrentStats;
+
 mod gps_position;
 pub use gps_position::GpsPosition;
 

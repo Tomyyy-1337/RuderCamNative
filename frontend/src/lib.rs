@@ -58,7 +58,9 @@ pub fn App() -> impl IntoElement {
     let socket_connected = signal(false);
     let battery_state = signal(0u8);
     let gps_count = signal(0u8);
-    socket::start(socket_connected, camera_interface, battery_state, gps_count);
+    let current_stats = signal(shared_data::CurrentStats { bpm: 0.0, velocity: 0.0 });
+    let fahrt_info = signal(None::<shared_data::FahrtInfo>);
+    socket::start(socket_connected, camera_interface, battery_state, gps_count, fahrtenbuch_store, current_stats, fahrt_info);
 
     let theme_mode = signal(stores::theme::load());
     effect(move || {

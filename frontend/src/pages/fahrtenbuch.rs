@@ -11,7 +11,8 @@ struct Summary {
 }
 
 pub(crate) fn fahrtenbuch(routes: Signal<Vec<Route>>, store: Signal<Fahrtenbuch>) -> impl IntoElement {
-    view().flex_1().pt_4().child(entry_list(routes, store))
+    view().flex_1().pt_4()
+        .child(entry_list(routes, store))
 }
 
 fn overview(store: Signal<Fahrtenbuch>) -> impl IntoElement {
@@ -65,63 +66,95 @@ fn entry_list(routes: Signal<Vec<Route>>, store: Signal<Fahrtenbuch>) -> impl In
     let list_rows = computed(move || rows(&store.get()));
     let list = virtual_list(move || list_rows.with(Vec::len), move |at| {
         let row = computed(move || list_rows.with(|r| r[at.index()].clone()));
-        let is_month = computed(move || row.with(|r| r.is_month));
-        when(is_month, move || {
-            view().px_1().pt_2().child(
-                text(move || row.with(|r| r.title.clone()))
-                    .text_size(px(16.0))
-                    .text_color(move || theme().muted_foreground),
-            )
+        when(computed(move || row.with(|r| matches!(r, Row::Month(_)))), move || {
+            month_label(row)
         })
         .otherwise(move || {
-            button()
-                .w_full()
-                .px_3()
-                .py_3()
-                .rounded(px(16.0))
-                .bg(move || theme().muted)
-                .on_press(move || routes.update(|r| r.push(Route::FahrtEintrag(row.with(|r| r.id)))))
-                .child(
-                    view()
-                        .gap_2()
-                        .child(
-                            text(move || row.with(|r| r.title.clone()))
-                                .text_size(px(16.0))
-                                .text_color(move || theme().card_foreground),
-                        )
-                        .child(
-                            view()
-                                .flex_row()
-                                .gap_2()
-                                .child(pill(move || row.with(|r| r.distance.clone())))
-                                .child(pill(move || row.with(|r| r.time.clone()))),
-                        ),
-                )
+            fahrtenbuch_entry(routes, row)
         })
     })
     .header(view().gap_4().child(overview(store)).child(divider()))
-    .keys(move || list_rows.with(|r| r.iter().map(|r| r.key.clone()).collect::<Vec<_>>()))
+    .keys(move || list_rows.with(Vec::clone))
     .estimated_item_size(px(72.0))
     .row_gap(px(14.0))
     .flex_1();
-    view().flex_1().rounded(px(16.0)).overflow_hidden().child(list)
+
+    view()
+        .flex_1().rounded(px(16.0)).overflow_hidden()
+        .child(list)
 }
 
-#[derive(Clone, PartialEq, Eq, Hash, Debug)]
-enum RowKey {
+fn fahrtenbuch_entry(routes: Signal<Vec<Route>>, row: Memo<Row>) -> nsh_base::ButtonElement {
+    button()
+        .w_full()
+        .px_3()
+        .py_3()
+        .rounded(px(16.0))
+        .bg(move || theme().muted)
+        .on_press(move || {
+            if let Some(id) = row.with(Row::trip_id) {
+                routes.update(|r| r.push(Route::FahrtEintrag(id)));
+            }
+        })
+        .child(
+            view()
+                .gap_2()
+                .child(
+                    text(move || row.with(Row::title))
+                        .text_size(px(16.0))
+                        .text_color(move || theme().card_foreground),
+                )
+                .child(
+                    view()
+                        .flex_row()
+                        .gap_2()
+                        .child(pill(move || row.with(Row::distance)))
+                        .child(pill(move || row.with(Row::time))),
+                ),
+        )
+}
+
+fn month_label(row: Memo<Row>) -> View {
+    view().px_1().pt_2().child(
+        text(move || row.with(Row::title))
+            .text_size(px(16.0))
+            .text_color(move || theme().muted_foreground),
+    )
+}
+
+#[derive(Clone, PartialEq, Eq, Hash)]
+enum Row {
     Month(String),
-    Trip(usize),
-    BottomSpacer,
+    Trip { id: usize, title: String, distance: String, time: String },
 }
 
-#[derive(Clone, PartialEq)]
-struct Row {
-    key: RowKey,
-    id: usize,
-    is_month: bool,
-    title: String,
-    distance: String,
-    time: String,
+impl Row {
+    fn title(&self) -> String {
+        match self {
+            Row::Month(title) | Row::Trip { title, .. } => title.clone(),
+        }
+    }
+
+    fn trip_id(&self) -> Option<usize> {
+        match self {
+            Row::Trip { id, .. } => Some(*id),
+            Row::Month(_) => None,
+        }
+    }
+
+    fn distance(&self) -> String {
+        match self {
+            Row::Trip { distance, .. } => distance.clone(),
+            Row::Month(_) => String::new(),
+        }
+    }
+
+    fn time(&self) -> String {
+        match self {
+            Row::Trip { time, .. } => time.clone(),
+            Row::Month(_) => String::new(),
+        }
+    }
 }
 
 fn rows(book: &Fahrtenbuch) -> Vec<Row> {
@@ -132,20 +165,11 @@ fn rows(book: &Fahrtenbuch) -> Vec<Row> {
         let month = start.year_month();
         if last_month != Some(month) {
             last_month = Some(month);
-            rows.push(Row {
-                key: RowKey::Month(format!("{}-{}", month.0, month.1)),
-                id: 0,
-                is_month: true,
-                title: start.month_label(),
-                distance: String::new(),
-                time: String::new(),
-            });
+            rows.push(Row::Month(start.month_label()));
         }
         let fahrt = &entry.value;
-        rows.push(Row {
-            key: RowKey::Trip(entry.index),
+        rows.push(Row::Trip {
             id: entry.index,
-            is_month: false,
             title: format!(
                 "Fahrt am {} um {} Uhr",
                 start.date_string(),
@@ -155,14 +179,6 @@ fn rows(book: &Fahrtenbuch) -> Vec<Row> {
             time: format!("{} h", fahrt.active_time_string()),
         });
     }
-    rows.push(Row {
-        key: RowKey::BottomSpacer,
-        id: 0,
-        is_month: true,
-        title: String::new(),
-        distance: String::new(),
-        time: String::new(),
-    });
     rows
 }
 

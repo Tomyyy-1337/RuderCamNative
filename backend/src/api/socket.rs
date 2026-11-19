@@ -3,7 +3,7 @@ use axum::{
     response::IntoResponse,
 };
 use futures::{StreamExt, stream::select_all};
-use shared_data::{BatteryState, CameraInterface, Message as SharedMessage};
+use shared_data::{BatteryState, CameraInterface, FinishedFahrt, Message as SharedMessage};
 use tokio::sync::watch;
 use tokio_stream::wrappers::WatchStream;
 
@@ -12,25 +12,47 @@ pub async fn ws_handler(
     camera_interface: watch::Receiver<CameraInterface>,
     battery_state: watch::Receiver<BatteryState>,
     gps_satelite_count: watch::Receiver<u8>,
+    finished_fahrt: watch::Receiver<FinishedFahrt>,
+    current_stats: watch::Receiver<shared_data::CurrentStats>,
+    fahrt_info: watch::Receiver<Option<shared_data::FahrtInfo>>,
 ) -> impl IntoResponse {
-    ws.on_upgrade(move |socket| handle_socket(socket, camera_interface, battery_state, gps_satelite_count))
+    ws.on_upgrade(move |socket| handle_socket(socket, 
+        camera_interface, 
+        battery_state, 
+        gps_satelite_count, 
+        finished_fahrt,
+        current_stats,
+        fahrt_info
+    ))
 }
 
 async fn handle_socket(
     mut socket: WebSocket, 
     camera_interface: watch::Receiver<CameraInterface>,
-    battery_state: watch::Receiver<BatteryState>,
+    battery_receiver: watch::Receiver<BatteryState>,
     gps_satelite_count: watch::Receiver<u8>,
+    finished_fahrt: watch::Receiver<FinishedFahrt>,
+    current_stats: watch::Receiver<shared_data::CurrentStats>,
+    fahrt_info: watch::Receiver<Option<shared_data::FahrtInfo>>,
 ) {
     let mut merged_stream = select_all([
         WatchStream::from_changes(camera_interface)
             .map(SharedMessage::CameraInterfaceUpdate)
             .boxed(),
-        WatchStream::from_changes(battery_state)
+        WatchStream::from_changes(battery_receiver)
             .map(SharedMessage::BatteryState)
             .boxed(),
         WatchStream::from_changes(gps_satelite_count)
             .map(SharedMessage::GpsSateliteCount)
+            .boxed(),
+        WatchStream::from_changes(finished_fahrt)
+            .map(SharedMessage::FinishedFahrt)
+            .boxed(),
+        WatchStream::from_changes(current_stats)
+            .map(SharedMessage::CurrentStats)
+            .boxed(),
+        WatchStream::from_changes(fahrt_info)
+            .map(SharedMessage::FahrtInfoUpdate)
             .boxed()
     ]);
 
