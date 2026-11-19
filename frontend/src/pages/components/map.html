@@ -5,7 +5,8 @@
         <meta name="color-scheme" content="__THEME__">
         <style>html, body { background: __BACKGROUND__; }</style>
         <style>__MAPLIBRE_CSS__</style>
-        <script>__MAPLIBRE_JS__</script>
+        <script type="text/plain" id="maplibre-src">__MAPLIBRE_JS__</script>
+        <script type="text/plain" id="maplibre-worker-src">__MAPLIBRE_WORKER__</script>
         <script>__PMTILES_JS__</script>
         <script>__MAP_STYLE__</script>
         <style>
@@ -40,7 +41,17 @@
                 report("error: " + m);
             };
         </script>
-        <script>
+        <script type="module">
+            const workerUrl = URL.createObjectURL(
+                new Blob([document.getElementById("maplibre-worker-src").textContent], { type: "text/javascript" })
+            );
+            const maplibregl = await import(
+                URL.createObjectURL(
+                    new Blob([document.getElementById("maplibre-src").textContent], { type: "text/javascript" })
+                )
+            );
+            maplibregl.setWorkerUrl(workerUrl);
+
             const ARCHIVE = "https://maps.passberg.net/germany.pmtiles";
             const ROUTE = [__ROUTE__];
             const interactive = __INTERACTIVE__;

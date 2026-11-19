@@ -37,7 +37,11 @@ pub(crate) fn map_html(interactive: bool, route: &[(f64, f64)]) -> String {
         )
         .replace(
             "__MAPLIBRE_JS__",
-            include_str!("../../../vendor/maplibre-gl.js"),
+            include_str!("../../../vendor/maplibre-gl.mjs"),
+        )
+        .replace(
+            "__MAPLIBRE_WORKER__",
+            include_str!("../../../vendor/maplibre-gl-worker.mjs"),
         )
         .replace(
             "__PMTILES_JS__",
