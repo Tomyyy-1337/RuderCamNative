@@ -1,11 +1,11 @@
 use std::net::SocketAddr;
 
 use axum::{Router, routing::get_service};
-use shared_data::{CurrentStats, FahrtInfo, FinishedFahrt};
+use shared_data::{CameraInterface, CurrentStats, FahrtInfo, FinishedFahrt, WlanSettings};
 use tokio::{runtime::LocalOptions, sync::watch};
 use tower_http::{cors::CorsLayer, services::ServeDir};
 
-use crate::{hardware_interface::i2c_interface::I2cInterface, tasks::{reader_accelerometer::read_accelerometer_task, reader_battery::read_battery_task, reader_gps::read_gps_task, send_current_stats::send_current_stats_task, send_fahrt_info::send_fahrt_info_task, update_camera::update_camera_task}};
+use crate::{hardware_interface::i2c_interface::I2cInterface, tasks::{reader_accelerometer::read_accelerometer_task, reader_battery::read_battery_task, reader_gps::read_gps_task, save_config::{read_config, save_config_task}, send_current_stats::send_current_stats_task, send_fahrt_info::send_fahrt_info_task, update_camera::update_camera_task}};
 
 mod api;
 mod hardware_interface;
@@ -23,9 +23,13 @@ fn main() {
         .build_local(LocalOptions::default())
         .unwrap()
         .block_on(async {
-            let camera_interface_initial = shared_data::CameraInterface::new();
+            let (camera_interface_initial, wlan_settings_initial) = match read_config().await {
+                Some((camera, wlan)) => (camera, wlan),
+                None => (CameraInterface::new(), WlanSettings::default()),
+            }; 
             
             let (camera_interface_sender, camera_interface_receiver) = watch::channel(camera_interface_initial);
+            let (wlan_settings_sender, wlan_settings_receiver) = watch::channel(wlan_settings_initial);
             let (battery_sender, battery_receiver) = watch::channel(shared_data::BatteryState { percentage: 50 });
             let (gps_satelite_count_sender, gps_satelite_count_receiver) = watch::channel(0u8);
             let (velocity_sender, velocity_receiver) = watch::channel(0.0);
@@ -41,6 +45,7 @@ fn main() {
             tokio::task::spawn_local(read_accelerometer_task(fahrt_sender.clone(), bpm_sender)); 
             tokio::task::spawn_local(send_current_stats_task(bpm_receiver, velocity_receiver, current_stats_sender));
             tokio::task::spawn_local(send_fahrt_info_task(fahrt_receiver, fahrt_info_sender));
+            tokio::task::spawn_local(save_config_task(camera_interface_receiver.clone(), wlan_settings_receiver));
 
             let addr = SocketAddr::from(([0, 0, 0, 0], 8140));
             let app = Router::new()

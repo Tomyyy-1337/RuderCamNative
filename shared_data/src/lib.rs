@@ -7,6 +7,9 @@ pub use fahrt::{FinishedFahrt, FahrtInfo};
 mod current_stats;
 pub use current_stats::CurrentStats;
 
+pub mod wlan_settings;
+pub use wlan_settings::WlanSettings;
+
 mod gps_position;
 pub use gps_position::GpsPosition;
 
