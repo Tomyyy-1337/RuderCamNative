@@ -173,6 +173,7 @@ fn route_section(
                 theme().muted
             }
         });
+    let map_ready = signal(false);
     if points.is_empty() {
         section.items_center().justify_center().child(
             text("Keine Wegpunkte")
@@ -182,12 +183,16 @@ fn route_section(
     } else {
         section.child(
             web_view_html(map_html(false, &points), None)
+                .bg(move || theme().background)
+                .opacity(move || if map_ready.get() { 1.0_f32 } else { 0.0_f32 })
                 .scrollable(false)
                 .on_message(move |data: &str| {
                     if data == "open" {
                         map_open.set(true);
                     } else if data == "map idle" {
                         map_idle_count.update(|n| *n += 1);
+                    } else if data == "map ready" {
+                        map_ready.set(true);
                     }
                 })
                 .w_full()
@@ -197,6 +202,7 @@ fn route_section(
 }
 
 fn fullscreen_map(map_open: Signal<bool>, points: Vec<(f64, f64)>) -> impl IntoElement {
+    let map_ready = signal(false);
     view()
         .flex_1()
         .p_safe_area()
@@ -208,7 +214,18 @@ fn fullscreen_map(map_open: Signal<bool>, points: Vec<(f64, f64)>) -> impl IntoE
                 .w_full()
                 .rounded(px(10.0))
                 .overflow_hidden()
-                .child(web_view_html(map_html(true, &points), None).w_full().h_full()),
+                .child(
+                    web_view_html(map_html(true, &points), None)
+                        .bg(move || theme().background)
+                        .opacity(move || if map_ready.get() { 1.0_f32 } else { 0.0_f32 })
+                        .on_message(move |data: &str| {
+                            if data == "map ready" || data.starts_with("error") {
+                                map_ready.set(true);
+                            }
+                        })
+                        .w_full()
+                        .h_full(),
+                ),
         )
         .child(
             view()

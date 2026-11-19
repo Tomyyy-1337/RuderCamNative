@@ -14,13 +14,15 @@ pub(crate) fn map_html(interactive: bool, route: &[(f64, f64)]) -> String {
         .map(|(lat, lon)| format!("[{lon},{lat}]"))
         .collect::<Vec<_>>()
         .join(",");
-    let theme = match crate::stores::theme::load() {
-        crate::stores::theme::ThemeMode::Dark => "dark",
-        crate::stores::theme::ThemeMode::Light => "light",
+    let (theme, background) = match crate::stores::theme::load() {
+        // Must match the palette background in map_style.js.
+        crate::stores::theme::ThemeMode::Dark => ("dark", "#121518"),
+        crate::stores::theme::ThemeMode::Light => ("light", "#e0e0e0"),
     };
     include_str!("map.html")
         .replace("__ROUTE__", &route)
         .replace("__THEME__", theme)
+        .replace("__BACKGROUND__", background)
         .replace(
             "__INTERACTIVE__",
             if interactive { "true" } else { "false" },

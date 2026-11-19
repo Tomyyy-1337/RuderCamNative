@@ -2,6 +2,8 @@
 <html>
     <head>
         <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+        <meta name="color-scheme" content="__THEME__">
+        <style>html, body { background: __BACKGROUND__; }</style>
         <style>__MAPLIBRE_CSS__</style>
         <script>__MAPLIBRE_JS__</script>
         <script>__PMTILES_JS__</script>
@@ -13,16 +15,13 @@
                 width: 100%;
                 overflow: hidden;
             }
-            html, body {
-                background: #f2efe9;
-            }
             #loading {
                 position: absolute;
                 inset: 0;
                 display: flex;
                 align-items: center;
                 justify-content: center;
-                background: #f2efe9;
+                background: __BACKGROUND__;
                 color: #555;
                 font: 16px sans-serif;
             }
@@ -98,6 +97,9 @@
                         new maplibregl.LngLatBounds(ROUTE[0], ROUTE[0])
                     );
                     map.fitBounds(bounds, { padding: 24, animate: false });
+                    requestAnimationFrame(function () {
+                        requestAnimationFrame(function () { report("map ready"); });
+                    });
                 });
 
                 new ResizeObserver(function () {
@@ -109,6 +111,7 @@
                 });
             }).catch(function (e) {
                 document.getElementById("loading").textContent = "Map failed to load: " + e;
+                report("error: " + e);
             });
         </script>
     </body>

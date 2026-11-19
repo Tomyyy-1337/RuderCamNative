@@ -5,6 +5,7 @@ use crate::pages::components::map::{ROUTE, map_html};
 
 /// The full-screen route map, shown in place of the tabs; pan and zoom are enabled.
 pub(crate) fn karte_view(karte_open: Signal<bool>) -> impl IntoElement {
+    let map_ready = signal(false);
     view()
         .flex_1()
         .p_safe_area()
@@ -16,7 +17,18 @@ pub(crate) fn karte_view(karte_open: Signal<bool>) -> impl IntoElement {
                 .w_full()
                 .rounded(px(10.0))
                 .overflow_hidden()
-                .child(web_view_html(map_html(true, &ROUTE), None).w_full().h_full()),
+                .child(
+                    web_view_html(map_html(true, &ROUTE), None)
+                        .bg(move || theme().background)
+                        .opacity(move || if map_ready.get() { 1.0_f32 } else { 0.0_f32 })
+                        .on_message(move |data: &str| {
+                            if data == "map ready" || data.starts_with("error") {
+                                map_ready.set(true);
+                            }
+                        })
+                        .w_full()
+                        .h_full(),
+                ),
         )
         .child(
             view()
