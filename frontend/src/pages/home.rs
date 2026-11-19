@@ -1,13 +1,45 @@
+use nsh_base::{button, theme};
 use nsh_core::prelude::*;
 
-pub(crate) fn home() -> impl IntoElement {
-    placeholder("Home placeholder")
-}
-
-fn placeholder(label: &'static str) -> impl IntoElement {
+pub(crate) fn home(
+    socket_connected: Signal<bool>,
+    fahrt_info: Signal<Option<shared_data::FahrtInfo>>,
+) -> impl IntoElement {
     view()
         .flex_1()
         .items_center()
         .justify_center()
-        .child(text(label).text_size(px(17.0)))
+        .child(
+            button()
+                .w(px(200.0))
+                .py_3()
+                .items_center()
+                .justify_center()
+                .rounded(px(16.0))
+                .bg(move || theme().primary)
+                .active(|s| s.scale(0.95))
+                .disabled(move || !socket_connected.get())
+                .disabled_style(|s| s.bg(move || theme().muted).scale(1.0))
+                .on_press(move || {
+                    nsh_core::element::spawn(async move {
+                        let now = shared_data::SerializableDateTime::from(chrono::Local::now());
+                        let _ = shared_data::api::toggle_fahrt(now).await;
+                    });
+                })
+                .child(
+                    text(move || {
+                        String::from(if !socket_connected.get() {
+                            "Nicht verfügbar"
+                        } else if fahrt_info.with(Option::is_some) {
+                            "Fahrt beenden"
+                        } else {
+                            "Fahrt starten"
+                        })
+                    })
+                    .text_size(px(17.0))
+                    .text_color(move || {
+                        if socket_connected.get() { theme().primary_foreground } else { theme().muted_foreground }
+                    }),
+                ),
+        )
 }

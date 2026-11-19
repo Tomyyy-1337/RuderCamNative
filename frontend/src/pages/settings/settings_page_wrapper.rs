@@ -72,6 +72,7 @@ pub(crate) fn settings_page_wrapper(
                             .h(px(40.0))
                             .rounded(px(20.0))
                             .bg(move || theme().muted)
+                            .active(|s| s.scale(0.95))
                             .on_press(move || on_close())
                             .child(
                                 view()
@@ -86,6 +87,7 @@ pub(crate) fn settings_page_wrapper(
                             ),
                     ),
             )
+            .child(view().w_full().h(px(1.0)).bg(move || theme().muted))
             .child(content),
     )
 }

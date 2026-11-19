@@ -115,6 +115,7 @@ pub fn App() -> impl IntoElement {
                                 battery_state,
                                 gps_count,
                                 socket_connected,
+                                fahrt_info,
                             )
                         },
                     ))
@@ -178,6 +179,7 @@ fn tabs_content(
     battery_state: Signal<u8>,
     gps_count: Signal<u8>,
     socket_connected: Signal<bool>,
+    fahrt_info: Signal<Option<shared_data::FahrtInfo>>,
 ) -> impl IntoElement {
     view().flex_1().p_safe_area().bg(move || theme().background).child(
         view().flex_1().items_center().px_2().pt_2().child(
@@ -213,7 +215,7 @@ fn tabs_content(
                 .child(
                     view()
                         .flex_1()
-                        .child(when(move || page.get() == Page::Home, home))
+                        .child(when(move || page.get() == Page::Home, move || home(socket_connected, fahrt_info)))
                         .child(when(
                             move || page.get() == Page::Fahrtenbuch,
                             move || fahrtenbuch(routes, fahrtenbuch_store),

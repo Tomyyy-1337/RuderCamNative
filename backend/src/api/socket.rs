@@ -31,10 +31,12 @@ async fn handle_socket(
     camera_interface: watch::Receiver<CameraInterface>,
     battery_receiver: watch::Receiver<BatteryState>,
     gps_satelite_count: watch::Receiver<u8>,
-    finished_fahrt: watch::Receiver<FinishedFahrt>,
+    mut finished_fahrt: watch::Receiver<FinishedFahrt>,
     current_stats: watch::Receiver<shared_data::CurrentStats>,
     fahrt_info: watch::Receiver<Option<shared_data::FahrtInfo>>,
 ) {
+    finished_fahrt.mark_unchanged();
+
     let mut merged_stream = select_all([
         WatchStream::from_changes(camera_interface)
             .map(SharedMessage::CameraInterfaceUpdate)

@@ -117,6 +117,7 @@ fn delete_button(armed: Signal<bool>, on_confirm: impl Fn() + 'static) -> impl I
         .border_2()
         .border_color(move || theme().destructive)
         .bg(move || if armed.get() { theme().destructive } else { theme().background })
+        .active(|s| s.scale(0.95))
         .on_press(move || {
             if armed.get_untracked() {
                 on_confirm();
@@ -138,9 +139,10 @@ fn delete_button(armed: Signal<bool>, on_confirm: impl Fn() + 'static) -> impl I
 fn stat_cell(label: &'static str, value: String) -> impl IntoElement {
     view()
         .flex_1()
-        .gap_1()
-        .p_4()
-        .rounded(px(16.0))
+        .gap_0()
+        .px_3()
+        .py_2()
+        .rounded(px(12.0))
         .bg(move || theme().muted)
         .child(
             text(label)

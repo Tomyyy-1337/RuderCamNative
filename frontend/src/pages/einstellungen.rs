@@ -36,6 +36,7 @@ fn settings_link(label: &'static str, on_press: impl Fn() + 'static) -> impl Int
         .rounded(px(16.0))
         .bg(move || theme().muted)
         .on_press(on_press)
+        .active(|s| s.scale(0.95))
         .child(
             view()
                 .flex_row()

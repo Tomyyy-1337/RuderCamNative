@@ -23,8 +23,9 @@ pub async fn send_fahrt_info_task(
             }
             _ = fahrt_receiver.changed() => {
                 let fahrt_info = fahrt_receiver.borrow().as_ref().map(|fahrt| fahrt.get_info());
-                if is_some != fahrt_info.is_some() {
-                    is_some = fahrt_info.is_some();
+                let is_some_now = fahrt_info.is_some();
+                if is_some != is_some_now {
+                    is_some = is_some_now;
                     let _ = fahrt_info_sender.send(fahrt_info);
                 }
             }

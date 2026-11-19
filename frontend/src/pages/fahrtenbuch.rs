@@ -87,10 +87,11 @@ fn entry_list(routes: Signal<Vec<Route>>, store: Signal<Fahrtenbuch>) -> impl In
 fn fahrtenbuch_entry(routes: Signal<Vec<Route>>, row: Memo<Row>) -> nsh_base::ButtonElement {
     button()
         .w_full()
-        .px_3()
+        .px_5()
         .py_3()
         .rounded(px(16.0))
         .bg(move || theme().muted)
+        .active(|s| s.scale(0.95))
         .on_press(move || {
             if let Some(id) = row.with(Row::trip_id) {
                 routes.update(|r| r.push(Route::FahrtEintrag(id)));
@@ -98,18 +99,30 @@ fn fahrtenbuch_entry(routes: Signal<Vec<Route>>, row: Memo<Row>) -> nsh_base::Bu
         })
         .child(
             view()
-                .gap_2()
-                .child(
-                    text(move || row.with(Row::title))
-                        .text_size(px(16.0))
-                        .text_color(move || theme().card_foreground),
-                )
+                .flex_row()
+                .items_center()
+                .gap_3()
                 .child(
                     view()
-                        .flex_row()
+                        .flex_1()
                         .gap_2()
-                        .child(pill(move || row.with(Row::distance)))
-                        .child(pill(move || row.with(Row::time))),
+                        .child(
+                            text(move || row.with(Row::title))
+                                .text_size(px(16.0))
+                                .text_color(move || theme().card_foreground),
+                        )
+                        .child(
+                            view()
+                                .flex_row()
+                                .gap_2()
+                                .child(pill(move || row.with(Row::distance)))
+                                .child(pill(move || row.with(Row::time))),
+                        ),
+                )
+                .child(
+                    text("›")
+                        .text_size(px(22.0))
+                        .text_color(move || theme().muted_foreground),
                 ),
         )
 }
