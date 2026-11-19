@@ -2,8 +2,6 @@ use std::time::Duration;
 use shared_data::BatteryState;
 use tokio::{sync::watch, time::MissedTickBehavior};
 
-use crate::I2C_INTERFACE;
-
 /// Read battery state from the I2C interface and update the sender periodically.
 pub async fn read_battery_task(battery_sender: watch::Sender<BatteryState>) {
     let mut timer = tokio::time::interval(Duration::from_secs(15));
@@ -12,18 +10,15 @@ pub async fn read_battery_task(battery_sender: watch::Sender<BatteryState>) {
     #[cfg(target_os = "linux")]
     loop {
         timer.tick().await;
-        let battery_percentage = I2C_INTERFACE.read_battery_percentage().await;
+        let battery_percentage = crate::I2C_INTERFACE.read_battery_percentage().await;
         let _ = battery_sender.send(BatteryState { percentage: battery_percentage });
         
         /// Check if the battery is critically low and shut down if necessary. Only on raspberry pi 
         if battery_percentage <= 2 {
-            use crate::backend::hardware_interface::pi_interface;
-
             println!("Battery critically low ({}%), shutting down...", battery_percentage);
             tokio::time::sleep(std::time::Duration::from_secs(3)).await;
-            pi_interface::shutdown();
+            crate::backend::hardware_interface::pi_interface::shutdown();
         } 
-
     }
 
     #[cfg(not(target_os = "linux"))]

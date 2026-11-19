@@ -10,7 +10,7 @@ use tokio_stream::wrappers::WatchStream;
 pub async fn ws_handler(
     ws: WebSocketUpgrade,
     camera_interface: watch::Receiver<CameraInterface>,
-    battery_state: watch::Receiver<BatteryState>,
+    battery_receiver: watch::Receiver<BatteryState>,
     gps_satelite_count: watch::Receiver<u8>,
     finished_fahrt: watch::Receiver<FinishedFahrt>,
     current_stats: watch::Receiver<shared_data::CurrentStats>,
@@ -18,7 +18,7 @@ pub async fn ws_handler(
 ) -> impl IntoResponse {
     ws.on_upgrade(move |socket| handle_socket(socket, 
         camera_interface, 
-        battery_state, 
+        battery_receiver,
         gps_satelite_count, 
         finished_fahrt,
         current_stats,

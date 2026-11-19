@@ -5,7 +5,7 @@ use shared_data::{CameraInterface, CurrentStats, FahrtInfo, FinishedFahrt, WlanS
 use tokio::{runtime::LocalOptions, sync::watch};
 use tower_http::{cors::CorsLayer, services::ServeDir};
 
-use crate::{hardware_interface::i2c_interface::I2cInterface, tasks::{reader_accelerometer::read_accelerometer_task, reader_battery::read_battery_task, reader_gps::read_gps_task, save_config::{read_config, save_config_task}, send_current_stats::send_current_stats_task, send_fahrt_info::send_fahrt_info_task, update_camera::update_camera_task}};
+use crate::{api::{camera_settings::{set_bitrate_handler, set_exposure_compensation_handler, set_focal_length_handler, set_focus_mode_handler, set_hdr_active_handler, set_metering_mode_handler}, toggle_fahrt::toggle_fahrt_handler}, hardware_interface::i2c_interface::I2cInterface, tasks::{reader_accelerometer::read_accelerometer_task, reader_battery::read_battery_task, reader_gps::read_gps_task, save_config::{read_config, save_config_task}, send_current_stats::send_current_stats_task, send_fahrt_info::send_fahrt_info_task, update_camera::update_camera_task}};
 
 mod api;
 mod hardware_interface;
@@ -50,13 +50,13 @@ fn main() {
             let addr = SocketAddr::from(([0, 0, 0, 0], 8140));
             let app = Router::new()
                 .route("/", axum::routing::get(|| async { "Hello, World!" }))
-                .merge(shared_data::api::set_focal_length(api::camera_settings::set_focal_length_handler, camera_interface_sender.clone()))
-                .merge(shared_data::api::set_hdr_active(api::camera_settings::set_hdr_active_handler, camera_interface_sender.clone()))
-                .merge(shared_data::api::set_bitrate(api::camera_settings::set_bitrate_handler, camera_interface_sender.clone()))
-                .merge(shared_data::api::set_focus_mode(api::camera_settings::set_focus_mode_handler, camera_interface_sender.clone()))
-                .merge(shared_data::api::set_exposure_compensation(api::camera_settings::set_exposure_compensation_handler, camera_interface_sender.clone()))
-                .merge(shared_data::api::set_metering_mode(api::camera_settings::set_metering_mode_handler, camera_interface_sender))
-                .merge(shared_data::api::toggle_fahrt(api::toggle_fahrt::toggle_fahrt_handler, (fahrt_sender, finished_fahrt_sender))) 
+                .merge(shared_data::api::set_focal_length(set_focal_length_handler, camera_interface_sender.clone()))
+                .merge(shared_data::api::set_hdr_active(set_hdr_active_handler, camera_interface_sender.clone()))
+                .merge(shared_data::api::set_bitrate(set_bitrate_handler, camera_interface_sender.clone()))
+                .merge(shared_data::api::set_focus_mode(set_focus_mode_handler, camera_interface_sender.clone()))
+                .merge(shared_data::api::set_exposure_compensation(set_exposure_compensation_handler, camera_interface_sender.clone()))
+                .merge(shared_data::api::set_metering_mode(set_metering_mode_handler, camera_interface_sender))
+                .merge(shared_data::api::toggle_fahrt(toggle_fahrt_handler, (fahrt_sender, finished_fahrt_sender))) 
                 .route("/ws", axum::routing::get(move |ws: axum::extract::ws::WebSocketUpgrade| api::socket::ws_handler(ws, 
                     camera_interface_receiver,
                     battery_receiver,
