@@ -79,7 +79,7 @@
                         sources: sources,
                         layers: buildLayers([SOURCE_FILE], theme),
                     },
-                    interactive: interactive,
+                    interactive: true,
                     attributionControl: false,
                 });
 
@@ -87,7 +87,17 @@
                     function (b, c) { return b.extend(c); },
                     new maplibregl.LngLatBounds(ROUTE[0], ROUTE[0])
                 );
-                map.fitBounds(bounds, { padding: 24, animate: false });
+                function fit() {
+                    map.fitBounds(bounds, { padding: 24, animate: false });
+                }
+                fit();
+
+                // Refit after the app resizes the web view.
+                let pendingFit = false;
+                window.addEventListener("message", function (e) {
+                    if (e.data !== "fullscreen on" && e.data !== "fullscreen off") return;
+                    pendingFit = true;
+                });
 
                 let shown = false;
                 map.on("sourcedataloading", function (e) {
@@ -112,6 +122,10 @@
 
                 new ResizeObserver(function () {
                     map.resize();
+                    if (pendingFit) {
+                        pendingFit = false;
+                        fit();
+                    }
                 }).observe(document.getElementById("map"));
 
                 document.addEventListener("visibilitychange", function () {

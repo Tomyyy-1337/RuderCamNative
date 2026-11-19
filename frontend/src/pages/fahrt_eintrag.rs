@@ -6,7 +6,7 @@ use shared_data::FinishedFahrt;
 
 use crate::Route;
 use crate::pages::components::map::map_html;
-use crate::pages::settings::settings_page_wrapper::settings_page_wrapper;
+use crate::pages::settings::settings_page_wrapper::settings_page_header;
 use crate::stores::fahrtenbuch::Fahrtenbuch;
 
 /// The detail screen for one Fahrtenbuch entry, pushed on top of the tabs.
@@ -30,7 +30,8 @@ pub(crate) fn fahrt_eintrag(
         .iter()
         .map(|p| (p.latitude, p.longitude))
         .collect();
-    let preview_points = points.clone();
+    let title = format!("Fahrt am {}", fahrt.client_start_time.date_string());
+    let subtitle = format!("{} Uhr", fahrt.client_start_time.hour_minute_string());
     let delete_armed = signal(false);
 
     nav_page()
@@ -40,37 +41,51 @@ pub(crate) fn fahrt_eintrag(
         .child(
             view()
                 .flex_1()
-                .child(when(move || !map_open.get(), move || {
-                    settings_page_wrapper(
-                        format!("Fahrt am {}", fahrt.client_start_time.date_string()),
-                        format!("{} Uhr", fahrt.client_start_time.hour_minute_string()),
-                        move || {
-                            routes.update(|r| {
-                                r.pop();
-                            })
-                        },
-                        scroll()
-                            .flex_1()
-                            .min_h(px(0.0))
-                            .child(
-                                view()
-                                    .gap_6()
-                                    .pb_6()
-                                    .child(route_section(preview_points.clone(), map_open))
-                                    .child(distance_card(fahrt.distance_traveled))
-                                    .child(stats(fahrt.clone()))
-                                    .child(delete_button(delete_armed, move || {
-                                        fahrtenbuch.update(|book| book.remove_entry(id));
-                                        routes.update(|r| r.truncate(index.get_untracked()));
-                                    })),
-                            ),
-                    )
-                }))
-                .child(when(move || map_open.get(), move || {
-                    fullscreen_map(map_open, points.clone())
-                })),
+                .items_center()
+                .p_safe_area()
+                .bg(move || theme().background)
+                .child(
+                    view()
+                        .flex_1()
+                        .w_full()
+                        .max_w(px(840.0))
+                        .px_2()
+                        .pt_4()
+                        .gap_6()
+                        .child(when(move || !map_open.get(), move || {
+                            view()
+                                .gap_6()
+                                .child(settings_page_header(title.clone(), subtitle.clone(), move || {
+                                    routes.update(|r| {
+                                        r.pop();
+                                    })
+                                }))
+                                .child(view().w_full().h(px(1.0)).bg(move || theme().muted))
+                        }))
+                        .child(map_section(points, map_open))
+                        .child(when(move || map_open.get(), move || {
+                            view().w_full().h(px(1.0)).bg(move || theme().muted)
+                        }))
+                        .child(when(move || !map_open.get(), move || {
+                            scroll()
+                                .flex_1()
+                                .min_h(px(0.0))
+                                .child(
+                                    view()
+                                        .gap_6()
+                                        .pb_6()
+                                        .child(distance_card(fahrt.distance_traveled))
+                                        .child(stats(fahrt.clone()))
+                                        .child(delete_button(delete_armed, move || {
+                                            fahrtenbuch.update(|book| book.remove_entry(id));
+                                            routes.update(|r| r.truncate(index.get_untracked()));
+                                        })),
+                                )
+                        })),
+                ),
         )
 }
+
 
 fn distance_card(distance: f32) -> impl IntoElement {
     view()
@@ -185,22 +200,23 @@ fn map_hint() -> impl IntoElement {
         )
 }
 
-fn route_section(points: Vec<(f64, f64)>, map_open: Signal<bool>) -> impl IntoElement {
-    let map_idle_count = signal(0_u32);
+fn map_section(points: Vec<(f64, f64)>, map_open: Signal<bool>) -> impl IntoElement {
+    let map_idle = signal(false);
+    let map_ready = signal(false);
     let hint_visible = signal(false);
     let section = view()
         .w_full()
-        .h(px(320.0))
+        .h(px(260.0))
         .rounded(px(10.0))
         .overflow_hidden()
+        .style_when(move || map_open.get(), |s| s.flex_1())
         .bg(move || {
-            if map_idle_count.get() > 0 {
+            if map_idle.get() {
                 theme().background
             } else {
                 theme().muted
             }
         });
-    let map_ready = signal(false);
     if points.is_empty() {
         section.items_center().justify_center().child(
             text("Keine Wegpunkte").max_font_size_multiplier(crate::MAX_FONT_SCALE_MULTIPLIER)
@@ -208,24 +224,29 @@ fn route_section(points: Vec<(f64, f64)>, map_open: Signal<bool>) -> impl IntoEl
                 .text_color(move || theme().muted_foreground),
         )
     } else {
+        let web = element_ref();
+        effect(move || {
+            let open = map_open.get();
+            hint_visible.set(false);
+            web.post_message(if open { "fullscreen on" } else { "fullscreen off" });
+        });
         section
             .child(
-                web_view_html(map_html(false, &points), None)
+                web_view_html(map_html(true, &points), None)
+                    .element_ref(&web)
                     .bg(move || theme().background)
                     .opacity(move || if map_ready.get() { 1.0_f32 } else { 0.0_f32 })
-                    .scrollable(false)
-                    .on_message(move |data: &str| {
-                        if data == "map idle" {
-                            map_idle_count.update(|n| *n += 1);
-                        } else if data == "map ready" {
-                            map_ready.set(true);
-                        }
+                    .on_message(move |data: &str| match data {
+                        "map idle" => map_idle.set(true),
+                        "map ready" => map_ready.set(true),
+                        _ if data.starts_with("error") => map_ready.set(true),
+                        _ => {}
                     })
                     .w_full()
                     .h_full(),
             )
-            .child(when(move || hint_visible.get(), map_hint))
-            .child(
+            .child(when(move || hint_visible.get() && !map_open.get(), map_hint))
+            .child(when(move || !map_open.get(), move || {
                 button()
                     .absolute()
                     .bottom(px(0.0))
@@ -243,8 +264,8 @@ fn route_section(points: Vec<(f64, f64)>, map_open: Signal<bool>) -> impl IntoEl
                             });
                         }
                     })
-                    .child(view()),
-            )
+                    .child(view())
+            }))
             .child(
                 view()
                     .absolute()
@@ -259,7 +280,7 @@ fn route_section(points: Vec<(f64, f64)>, map_open: Signal<bool>) -> impl IntoEl
                             .items_center()
                             .justify_center()
                             .bg(move || theme().muted)
-                            .on_press(move || map_open.set(true))
+                            .on_press(move || map_open.set(!map_open.get_untracked()))
                             .child(
                                 text("⛶")
                                     .max_font_size_multiplier(crate::MAX_FONT_SCALE_MULTIPLIER)
@@ -271,53 +292,3 @@ fn route_section(points: Vec<(f64, f64)>, map_open: Signal<bool>) -> impl IntoEl
     }
 }
 
-fn fullscreen_map(map_open: Signal<bool>, points: Vec<(f64, f64)>) -> impl IntoElement {
-    let map_ready = signal(false);
-    view()
-        .flex_1()
-        .p_safe_area()
-        .gap_4()
-        .bg(move || theme().background)
-        .child(
-            view()
-                .flex_1()
-                .w_full()
-                .rounded(px(10.0))
-                .overflow_hidden()
-                .child(
-                    web_view_html(map_html(true, &points), None)
-                        .bg(move || theme().background)
-                        .opacity(move || if map_ready.get() { 1.0_f32 } else { 0.0_f32 })
-                        .on_message(move |data: &str| {
-                            if data == "map ready" || data.starts_with("error") {
-                                map_ready.set(true);
-                            }
-                        })
-                        .w_full()
-                        .h_full(),
-                ),
-        )
-        .child(
-            view()
-                .absolute()
-                .bottom(px(0.0))
-                .right(px(0.0))
-                .p_safe_area()
-                .child(
-                    button()
-                        .m_4()
-                        .w(px(40.0))
-                        .h(px(40.0))
-                        .rounded(px(20.0))
-                        .items_center()
-                        .justify_center()
-                        .bg(move || theme().muted)
-                        .on_press(move || map_open.set(false))
-                        .child(
-                            text("⛶")
-                                .max_font_size_multiplier(crate::MAX_FONT_SCALE_MULTIPLIER).text_size(px(18.0))
-                                .text_color(move || theme().foreground),
-                        ),
-                ),
-        )
-}
