@@ -11,7 +11,9 @@ struct Summary {
 }
 
 pub(crate) fn fahrtenbuch(routes: Signal<Vec<Route>>, store: Signal<Fahrtenbuch>) -> impl IntoElement {
-    view().flex_1().pt_4()
+    view()
+        .flex_1()
+        .pt_4()
         .child(entry_list(routes, store))
 }
 

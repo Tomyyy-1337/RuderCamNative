@@ -49,8 +49,7 @@ pub(crate) fn fahrt_eintrag(
                         .flex_1()
                         .w_full()
                         .max_w(px(840.0))
-                        .px_2()
-                        .pt_4()
+                        .style_when(move || !map_open.get(), move |s| s.px_2().pt_4())
                         .gap_6()
                         .child(when(move || !map_open.get(), move || {
                             view()
@@ -63,9 +62,6 @@ pub(crate) fn fahrt_eintrag(
                                 .child(view().w_full().h(px(1.0)).bg(move || theme().muted))
                         }))
                         .child(map_section(points, map_open))
-                        .child(when(move || map_open.get(), move || {
-                            view().w_full().h(px(1.0)).bg(move || theme().muted)
-                        }))
                         .child(when(move || !map_open.get(), move || {
                             scroll()
                                 .flex_1()
@@ -264,7 +260,6 @@ fn map_section(points: Vec<(f64, f64)>, map_open: Signal<bool>) -> impl IntoElem
                             });
                         }
                     })
-                    .child(view())
             }))
             .child(
                 view()

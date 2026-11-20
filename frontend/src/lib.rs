@@ -10,8 +10,7 @@ use icons::{battery::battery_indicator, gps::gps_indicator};
 use nsh_base::{nav_page, nav_stack, tab, tabs, theme};
 use nsh_core::prelude::*;
 use pages::{
-    anzeige_einstellungen, einstellungen, fahrt_eintrag, fahrtenbuch, home, karte_view,
-    kamera_einstellungen,
+    anzeige_einstellungen, einstellungen, fahrt_eintrag, fahrtenbuch, home, kamera_einstellungen,
 };
 use stores::fahrtenbuch::Fahrtenbuch;
 
@@ -49,7 +48,6 @@ fn native(registry: &mut Registry) {
 pub fn App() -> impl IntoElement {
     let page = signal(Page::Home);
     let routes = signal(Vec::<Route>::new());
-    let karte_open = signal(false);
     let fahrt_map_open = signal(false);
     
     let fahrtenbuch_store = signal(stores::fahrtenbuch::load());
@@ -77,10 +75,6 @@ pub fn App() -> impl IntoElement {
                 fahrt_map_open.set(false);
                 return true;
             }
-            if karte_open.get_untracked() {
-                karte_open.set(false);
-                return true;
-            }
             if !routes.get_untracked().is_empty() {
                 return false;
             }
@@ -103,29 +97,12 @@ pub fn App() -> impl IntoElement {
                     StatusBarSetting::default().foreground(style)
                 })
                 .child(
-                view()
-                    .flex_1()
-                    .bg(move || theme().background)
-                    .text_color(move || theme().foreground)
-                    .child(when(
-                        move || !karte_open.get(),
-                        move || {
-                            tabs_content(
-                                page,
-                                routes,
-                                fahrtenbuch_store,
-                                battery_state,
-                                gps_count,
-                                socket_connected,
-                                fahrt_info,
-                            )
-                        },
-                    ))
-                    .child(when(
-                        move || karte_open.get(),
-                        move || karte_view(karte_open),
-                    )),
-            ),
+                    view()
+                        .flex_1()
+                        .bg(move || theme().background)
+                        .text_color(move || theme().foreground)
+                        .child(tabs_content(page,routes,fahrtenbuch_store,battery_state,gps_count,socket_connected,fahrt_info)),
+                ),
         )
         .child(each(
             move || routes.get(),
@@ -153,13 +130,7 @@ fn navbar(page: Signal<Page>) -> impl IntoElement {
                 .items_center()
                 .py_2()
                 .rounded(px(8.0))
-                .bg(move || {
-                    if page.get() == item {
-                        theme().primary
-                    } else {
-                        theme().muted
-                    }
-                })
+                .bg(move || if page.get() == item { theme().primary } else { theme().muted })
                 .selected(move || page.get() == item)
                 .on_press(move || page.set(item))
                 .child(text(label).allow_font_scaling(false).text_size(px(16.0)).text_color(move || {
@@ -172,6 +143,34 @@ fn navbar(page: Signal<Page>) -> impl IntoElement {
         );
     }
     bar
+}
+
+fn title_bar(
+    battery_state: Signal<u8>,
+    gps_count: Signal<u8>,
+    socket_connected: Signal<bool>,
+) -> impl IntoElement {
+    view()
+        .flex_row()
+        .items_center()
+        .h(px(50.0))
+        .px_2()
+        .py_3()
+        .rounded(px(10.0))
+        .bg(move || theme().muted)
+        .child(
+            view()
+                .flex_1()
+                .items_start()
+                .child(battery_indicator(battery_state, socket_connected)),
+        )
+        .child(text("Ruder Cam Beta").allow_font_scaling(false).text_size(px(20.0)))
+        .child(
+            view()
+                .flex_1()
+                .items_end()
+                .child(gps_indicator(gps_count, socket_connected)),
+        )
 }
 
 fn tabs_content(
@@ -190,29 +189,7 @@ fn tabs_content(
                 .w_full()
                 .max_w(px(840.0))
                 .gap_4()
-                .child(
-                    view()
-                        .flex_row()
-                        .items_center()
-                        .h(px(50.0))
-                        .px_2()
-                        .py_3()
-                        .rounded(px(10.0))
-                        .bg(move || theme().muted)
-                        .child(
-                            view()
-                                .flex_1()
-                                .items_start()
-                                .child(battery_indicator(battery_state, socket_connected)),
-                        )
-                        .child(text("Ruder Cam Beta").allow_font_scaling(false).text_size(px(20.0)))
-                        .child(
-                            view()
-                                .flex_1()
-                                .items_end()
-                                .child(gps_indicator(gps_count, socket_connected)),
-                        ),
-                )
+                .child(title_bar(battery_state, gps_count, socket_connected))
                 .child(navbar(page))
                 .child(
                     view()
