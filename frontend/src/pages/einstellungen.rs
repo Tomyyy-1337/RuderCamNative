@@ -6,11 +6,18 @@ use crate::Route;
 pub(crate) fn einstellungen(routes: Signal<Vec<Route>>) -> impl IntoElement {
     view()
         .flex_1()
-        .pt_2()
-        .gap_6()
         .bg(move || theme().background)
         .text_color(move || theme().foreground)
         .child(
+            scroll()
+                .flex_1()
+                .w_full()
+                .child(
+            view()
+                .w_full()
+                .pt_2()
+                .gap_6()
+                .child(
             view()
                 .gap_1()
                 .child(text("Lokale Einstellungen").max_font_size_multiplier(crate::MAX_FONT_SCALE_MULTIPLIER).text_size(px(28.0)))
@@ -26,6 +33,8 @@ pub(crate) fn einstellungen(routes: Signal<Vec<Route>>) -> impl IntoElement {
         .child(settings_link("Kamera-Einstellungen", move || {
             routes.update(|r| r.push(Route::Kamera))
         }))
+                )
+        )
 }
 
 fn settings_link(label: &'static str, on_press: impl Fn() + 'static) -> impl IntoElement {

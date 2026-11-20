@@ -53,7 +53,12 @@
             maplibregl.setWorkerUrl(workerUrl);
 
             const ARCHIVE = "https://maps.passberg.net/germany.pmtiles";
-            const ROUTE = [__ROUTE__];
+            let ROUTE = [__ROUTE__];
+            let applyRoute = function () {};
+            window.setRoute = function (next) {
+                ROUTE = next;
+                applyRoute();
+            };
             const interactive = __INTERACTIVE__;
             const theme = "__THEME__";
 
@@ -83,11 +88,15 @@
                     attributionControl: false,
                 });
 
-                const bounds = ROUTE.reduce(
-                    function (b, c) { return b.extend(c); },
-                    new maplibregl.LngLatBounds(ROUTE[0], ROUTE[0])
-                );
+                let bounds = null;
+                function computeBounds() {
+                    bounds = ROUTE.length
+                        ? ROUTE.reduce(function (b, c) { return b.extend(c); }, new maplibregl.LngLatBounds(ROUTE[0], ROUTE[0]))
+                        : null;
+                }
+                computeBounds();
                 function fit(animate) {
+                    if (!bounds) return;
                     map.fitBounds(bounds, {
                         padding: 24,
                         animate: animate,
@@ -96,6 +105,18 @@
                     });
                 }
                 fit(false);
+                applyRoute = function () {
+                    computeBounds();
+                    const source = map.getSource("waypoint-path");
+                    if (source) {
+                        source.setData({
+                            type: "Feature",
+                            properties: {},
+                            geometry: { type: "LineString", coordinates: ROUTE },
+                        });
+                    }
+                    fit(true);
+                };
 
                 let shown = false;
                 map.on("sourcedataloading", function (e) {

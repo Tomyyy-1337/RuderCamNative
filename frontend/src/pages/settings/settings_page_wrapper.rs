@@ -36,12 +36,15 @@ pub(crate) fn settings_page_wrapper(
 ) -> impl IntoElement {
     view()
         .flex_1()
-        .items_center()
         .p_safe_area()
         .bg(move || theme().background)
         .child(
-            view()
+            scroll()
                 .flex_1()
+                .w_full()
+                .items_center()
+                .child(
+            view()
                 .w_full()
                 .max_w(px(840.0))
                 .px_2()
@@ -52,6 +55,7 @@ pub(crate) fn settings_page_wrapper(
                 .child(settings_page_header(title, subtitle, on_close))
                 .child(view().w_full().h(px(1.0)).bg(move || theme().muted))
                 .child(content),
+                )
         )
 }
 

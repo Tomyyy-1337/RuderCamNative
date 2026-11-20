@@ -1,15 +1,16 @@
 use std::time::Duration;
 
-use nsh_base::{button, nav_page, theme};
+use nsh_base::{button, carousel, carousel_content, carousel_item, nav_page, theme};
 use nsh_core::prelude::*;
 use shared_data::FinishedFahrt;
 
 use crate::Route;
-use crate::pages::components::map::map_html;
-use crate::pages::settings::settings_page_wrapper::settings_page_header;
+use crate::pages::components::map::{map_html, route_js};
 use crate::stores::fahrtenbuch::Fahrtenbuch;
 
-/// The detail screen for one Fahrtenbuch entry, pushed on top of the tabs.
+const SLIDE_WINDOW: usize = 3;
+
+/// The detail screen: a carousel of all Fahrtenbuch entries, opened at `id`.
 pub(crate) fn fahrt_eintrag(
     routes: Signal<Vec<Route>>,
     index: ReadSignal<usize>,
@@ -17,27 +18,44 @@ pub(crate) fn fahrt_eintrag(
     id: usize,
     map_open: Signal<bool>,
 ) -> Screen {
-    let fahrt = fahrtenbuch
-        .get_untracked()
-        .entries
-        .iter()
-        .find(|entry| entry.index == id)
-        .map(|entry| entry.value.clone())
-        .unwrap_or_default();
-
-    let points: Vec<(f64, f64)> = fahrt
-        .gps_history
-        .iter()
-        .map(|p| (p.latitude, p.longitude))
-        .collect();
-    let title = format!("Fahrt am {}", fahrt.client_start_time.date_string());
-    let subtitle = format!("{} Uhr", fahrt.client_start_time.hour_minute_string());
-    let delete_armed = signal(false);
+    map_open.set(false);
+    // Newest first, the same order as the list.
+    let ids = computed(move || {
+        fahrtenbuch.with(|book| book.entries.iter().rev().map(|entry| entry.index).collect::<Vec<usize>>())
+    });
+    let start = fahrtenbuch.with(|book| {
+        book.entries
+            .iter()
+            .rev()
+            .position(|entry| entry.index == id)
+            .unwrap_or(0) as u32
+    });
+    let position = signal(start);
+    let points = computed(move || {
+        let slide_id = ids.with(|ids| ids.get(position.get() as usize).copied());
+        fahrtenbuch.with(|book| {
+            book.entries
+                .iter()
+                .find(|entry| Some(entry.index) == slide_id)
+                .map(|entry| {
+                    entry
+                        .value
+                        .gps_history
+                        .iter()
+                        .map(|p| (p.latitude, p.longitude))
+                        .collect::<Vec<(f64, f64)>>()
+                })
+                .unwrap_or_default()
+        })
+    });
 
     nav_page()
         .header_visible(false)
         .animation(ScreenAnimation::None)
-        .on_dismiss(move || routes.update(|r| r.truncate(index.get_untracked())))
+        .on_dismiss(move || {
+            map_open.set(false);
+            routes.update(|r| r.truncate(index.get_untracked()));
+        })
         .child(
             view()
                 .flex_1()
@@ -50,38 +68,164 @@ pub(crate) fn fahrt_eintrag(
                         .w_full()
                         .max_w(px(840.0))
                         .style_when(move || !map_open.get(), move |s| s.px_2().pt_4())
-                        .gap_6()
-                        .child(when(move || !map_open.get(), move || {
-                            view()
-                                .gap_6()
-                                .child(settings_page_header(title.clone(), subtitle.clone(), move || {
-                                    routes.update(|r| {
-                                        r.pop();
-                                    })
-                                }))
-                                .child(view().w_full().h(px(1.0)).bg(move || theme().muted))
-                        }))
-                        .child(map_section(points, map_open))
+                        .gap_4()
+                        .child(map_section(routes, points, map_open))
                         .child(when(move || !map_open.get(), move || {
                             scroll()
                                 .flex_1()
-                                .min_h(px(0.0))
+                                .w_full()
+                                .items_center()
                                 .child(
                                     view()
-                                        .gap_6()
-                                        .pb_6()
-                                        .child(distance_card(fahrt.distance_traveled))
-                                        .child(stats(fahrt.clone()))
-                                        .child(delete_button(delete_armed, move || {
-                                            fahrtenbuch.update(|book| book.remove_entry(id));
-                                            routes.update(|r| r.truncate(index.get_untracked()));
-                                        })),
+                                        .w_full()
+                                        .gap_4()
+                                        .child(nav_buttons(ids, position))
+                                        .child(when(move || !map_open.get(), move || {
+                                            carousel()
+                                .w_full()
+                                .index(move || Some(position.get()))
+                                .on_change(move |i: &u32| position.set(*i))
+                                .accessibility_label("Fahrten")
+                                .child(carousel_content().gap_x_2().child(each(
+                                    move || ids.get(),
+                                    |slide_id: &usize| slide_id.to_string(),
+                                    move |slide_id, _| {
+                                        let id = slide_id.get_untracked();
+                                        let near = computed(move || {
+                                            let pos = position.get() as usize;
+                                            ids.with(|ids| {
+                                                ids.iter().position(|s| *s == id).is_some_and(|i| i.abs_diff(pos) <= SLIDE_WINDOW)
+                                            })
+                                        });
+                                        carousel_item()
+                                            .w_full()
+                                            .items_center()
+                                            .child(
+                                                when(move || near.get(), move || {
+                                                    fahrt_slide(routes, index, fahrtenbuch, id, position)
+                                                })
+                                                .otherwise(|| view().w_full()),
+                                            )
+                                    },
+                                )))
+                        })),
                                 )
+                        }))
+                )
+        )
+}
+
+/// The previous and next buttons, shown below the map and outside the carousel.
+fn nav_buttons(ids: Memo<Vec<usize>>, position: Signal<u32>) -> impl IntoElement {
+    view()
+        .flex_row()
+        .w_full()
+        .max_w(px(840.0))
+        .gap_2()
+        .child(nav_button("Nächste", move || position.get() == 0, move || {
+            position.set(position.get_untracked().saturating_sub(1));
+        }))
+        .child(nav_button("Vorherige", move || position.get() as usize + 1 >= ids.with(Vec::len), move || {
+            let last = ids.with(Vec::len).saturating_sub(1) as u32;
+            if position.get_untracked() < last {
+                position.set(position.get_untracked() + 1);
+            }
+        }))
+}
+
+/// A labelled pill button, used for slide navigation.
+fn nav_button(
+    label: &'static str,
+    disabled: impl Fn() -> bool + 'static,
+    on_press: impl Fn() + 'static,
+) -> impl IntoElement {
+    button()
+        .flex_1()
+        .h(px(40.0))
+        .px_4()
+        .rounded(px(20.0))
+        .items_center()
+        .justify_center()
+        .bg(move || theme().muted)
+        .active(|s| s.scale(0.95))
+        .disabled(move || disabled())
+        .disabled_style(|s| s.opacity(0.4))
+        .on_press(move || on_press())
+        .child(
+            text(label)
+                .max_font_size_multiplier(crate::MAX_FONT_SCALE_MULTIPLIER)
+                .text_size(px(15.0))
+                .text_color(move || theme().foreground),
+        )
+}
+
+/// One entry's stats and delete button, shown as a slide of the carousel.
+fn fahrt_slide(
+    routes: Signal<Vec<Route>>,
+    index: ReadSignal<usize>,
+    fahrtenbuch: Signal<Fahrtenbuch>,
+    id: usize,
+    position: Signal<u32>,
+) -> impl IntoElement {
+    let fahrt = fahrtenbuch.with(|book| {
+        book.entries
+            .iter()
+            .find(|entry| entry.index == id)
+            .map(|entry| entry.value.clone())
+            .unwrap_or_default()
+    });
+
+    let delete_armed = signal(false);
+
+    view()
+        .flex_1()
+        .w_full()
+        .max_w(px(840.0))
+        .child(
+            view()
+                .child(
+                    view()
+                        .gap_4()
+                        .pb_6()
+                        .child(heading_card(
+                            format!("Fahrt am {}", fahrt.client_start_time.date_string()),
+                            format!("{} Uhr", fahrt.client_start_time.hour_minute_string()),
+                        ))
+                        .child(distance_card(fahrt.distance_traveled))
+                        .child(stats(fahrt.clone()))
+                        .child(delete_button(delete_armed, move || {
+                            fahrtenbuch.update(|book| book.remove_entry(id));
+                            let remaining = fahrtenbuch.get_untracked().entries.len() as u32;
+                            if remaining == 0 {
+                                routes.update(|r| r.truncate(index.get_untracked()));
+                            } else {
+                                position.set(position.get_untracked().min(remaining - 1));
+                            }
                         })),
                 ),
         )
 }
 
+fn heading_card(title: String, subtitle: String) -> impl IntoElement {
+    view()
+        .w_full()
+        .p_4()
+        .gap_1()
+        .rounded(px(16.0))
+        .bg(move || theme().muted)
+        .child(
+            text(title)
+                .max_font_size_multiplier(crate::MAX_FONT_SCALE_MULTIPLIER)
+                .text_size(px(24.0))
+                .text_color(move || theme().card_foreground),
+        )
+        .child(
+            text(subtitle)
+                .max_font_size_multiplier(crate::MAX_FONT_SCALE_MULTIPLIER)
+                .text_size(px(14.0))
+                .text_color(move || theme().muted_foreground),
+        )
+}
 
 fn distance_card(distance: f32) -> impl IntoElement {
     view()
@@ -196,10 +340,16 @@ fn map_hint() -> impl IntoElement {
         )
 }
 
-fn map_section(points: Vec<(f64, f64)>, map_open: Signal<bool>) -> impl IntoElement {
+/// The one map, shared by all slides; it follows the current slide's route.
+fn map_section(
+    routes: Signal<Vec<Route>>,
+    points: Memo<Vec<(f64, f64)>>,
+    map_open: Signal<bool>,
+) -> impl IntoElement {
     let map_idle = signal(false);
     let map_ready = signal(false);
     let hint_visible = signal(false);
+    let web = element_ref();
     let section = view()
         .w_full()
         .h(px(260.0))
@@ -212,77 +362,125 @@ fn map_section(points: Vec<(f64, f64)>, map_open: Signal<bool>) -> impl IntoElem
             } else {
                 theme().muted
             }
-        });
-    if points.is_empty() {
-        section.items_center().justify_center().child(
+        })
+        .child(
+            web_view_html(map_html(true, &points.with(Vec::clone)), None)
+                .element_ref(&web)
+                .bg(move || theme().background)
+                .opacity(move || if map_ready.get() { 1.0_f32 } else { 0.0_f32 })
+                .on_message(move |data: &str| match data {
+                    "map idle" => map_idle.set(true),
+                    "map ready" => map_ready.set(true),
+                    _ if data.starts_with("error") => map_ready.set(true),
+                    _ => {}
+                })
+                .w_full()
+                .h_full(),
+        )
+        .child(when(move || points.with(Vec::is_empty), empty_points))
+        .child(when(move || hint_visible.get() && !map_open.get(), map_hint))
+        .child(when(move || !map_open.get(), move || {
+            button()
+                .absolute()
+                .bottom(px(0.0))
+                .right(px(0.0))
+                .w_full()
+                .h_full()
+                .on_press(move || {
+                    if hint_visible.get_untracked() {
+                        map_open.set(true);
+                    } else {
+                        hint_visible.set(true);
+                        nsh_core::element::spawn(async move {
+                            timer(Duration::from_millis(750)).await;
+                            hint_visible.set(false);
+                        });
+                    }
+                })
+        }))
+        .child(
+            view()
+                .absolute()
+                .bottom(px(0.0))
+                .right(px(0.0))
+                .child(
+                    button()
+                        .m_2()
+                        .w(px(46.0))
+                        .h(px(46.0))
+                        .rounded(px(23.0))
+                        .items_center()
+                        .justify_center()
+                        .bg(move || theme().muted)
+                        .on_press(move || map_open.set(!map_open.get_untracked()))
+                        .child(
+                            text("⛶")
+                                .max_font_size_multiplier(crate::MAX_FONT_SCALE_MULTIPLIER)
+                                .text_size(px(22.0))
+                                .text_color(move || theme().foreground),
+                        ),
+                ),
+        )
+        .child(when(move || !map_open.get(), move || close_button(routes)));
+
+    effect(move || {
+        let _ = map_open.get();
+        hint_visible.set(false);
+    });
+    effect(move || {
+        let route = points.get();
+        if map_ready.get() {
+            web.inject_java_script(&format!("window.setRoute([{}]);", route_js(&route)));
+        }
+    });
+    section
+}
+
+/// The close button in the top right of the map, shown only when not fullscreen.
+fn close_button(routes: Signal<Vec<Route>>) -> impl IntoElement {
+    view()
+        .absolute()
+        .top(px(0.0))
+        .right(px(0.0))
+        .child(
+            button()
+                .m_2()
+                .w(px(46.0))
+                .h(px(46.0))
+                .rounded(px(23.0))
+                .items_center()
+                .justify_center()
+                .bg(move || theme().muted)
+                .active(|s| s.scale(0.95))
+                .on_press(move || {
+                    routes.update(|r| {
+                        r.pop();
+                    })
+                })
+                .child(
+                    text("✕")
+                        .max_font_size_multiplier(crate::MAX_FONT_SCALE_MULTIPLIER)
+                        .text_size(px(18.0))
+                        .text_color(move || theme().foreground),
+                ),
+        )
+}
+
+fn empty_points() -> impl IntoElement {
+    view()
+        .absolute()
+        .bottom(px(0.0))
+        .right(px(0.0))
+        .w_full()
+        .h_full()
+        .items_center()
+        .justify_center()
+        .bg(move || theme().muted)
+        .child(
             text("Keine Wegpunkte").max_font_size_multiplier(crate::MAX_FONT_SCALE_MULTIPLIER)
                 .text_size(px(15.0))
                 .text_color(move || theme().muted_foreground),
         )
-    } else {
-        let web = element_ref();
-        effect(move || {
-            let _ = map_open.get();
-            hint_visible.set(false);
-        });
-        section
-            .child(
-                web_view_html(map_html(true, &points), None)
-                    .element_ref(&web)
-                    .bg(move || theme().background)
-                    .opacity(move || if map_ready.get() { 1.0_f32 } else { 0.0_f32 })
-                    .on_message(move |data: &str| match data {
-                        "map idle" => map_idle.set(true),
-                        "map ready" => map_ready.set(true),
-                        _ if data.starts_with("error") => map_ready.set(true),
-                        _ => {}
-                    })
-                    .w_full()
-                    .h_full(),
-            )
-            .child(when(move || hint_visible.get() && !map_open.get(), map_hint))
-            .child(when(move || !map_open.get(), move || {
-                button()
-                    .absolute()
-                    .bottom(px(0.0))
-                    .right(px(0.0))
-                    .w_full()
-                    .h_full()
-                    .on_press(move || {
-                        if hint_visible.get_untracked() {
-                            map_open.set(true);
-                        } else {
-                            hint_visible.set(true);
-                            nsh_core::element::spawn(async move {
-                                timer(Duration::from_millis(750)).await;
-                                hint_visible.set(false);
-                            });
-                        }
-                    })
-            }))
-            .child(
-                view()
-                    .absolute()
-                    .bottom(px(0.0))
-                    .right(px(0.0))
-                    .child(
-                        button()
-                            .m_2()
-                            .w(px(36.0))
-                            .h(px(36.0))
-                            .rounded(px(18.0))
-                            .items_center()
-                            .justify_center()
-                            .bg(move || theme().muted)
-                            .on_press(move || map_open.set(!map_open.get_untracked()))
-                            .child(
-                                text("⛶")
-                                    .max_font_size_multiplier(crate::MAX_FONT_SCALE_MULTIPLIER)
-                                    .text_size(px(16.0))
-                                    .text_color(move || theme().foreground),
-                            ),
-                    ),
-            )
-    }
 }
+
 

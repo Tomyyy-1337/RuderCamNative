@@ -1,19 +1,15 @@
-// Placeholder route, replace with the real GPS points as (latitude, longitude).
-pub(crate) const ROUTE: [(f64, f64); 5] = [
-    (52.5200, 13.4050),
-    (52.5124, 13.4220),
-    (52.5095, 13.4480),
-    (52.4930, 13.4650),
-    (52.4760, 13.4850),
-];
-
-/// The map page's HTML; `interactive` enables pan and zoom.
-pub(crate) fn map_html(interactive: bool, route: &[(f64, f64)]) -> String {
-    let route = route
+/// The route as JavaScript `[lon,lat]` pairs, without the surrounding brackets.
+pub(crate) fn route_js(route: &[(f64, f64)]) -> String {
+    route
         .iter()
         .map(|(lat, lon)| format!("[{lon},{lat}]"))
         .collect::<Vec<_>>()
-        .join(",");
+        .join(",")
+}
+
+/// The map page's HTML; `interactive` enables pan and zoom.
+pub(crate) fn map_html(interactive: bool, route: &[(f64, f64)]) -> String {
+    let route = route_js(route);
     let (theme, background) = match crate::stores::theme::load() {
         // Must match the palette background in map_style.js.
         crate::stores::theme::ThemeMode::Dark => ("dark", "#121518"),
