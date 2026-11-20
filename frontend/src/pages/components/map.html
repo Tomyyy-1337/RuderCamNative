@@ -87,17 +87,15 @@
                     function (b, c) { return b.extend(c); },
                     new maplibregl.LngLatBounds(ROUTE[0], ROUTE[0])
                 );
-                function fit() {
-                    map.fitBounds(bounds, { padding: 24, animate: false });
+                function fit(animate) {
+                    map.fitBounds(bounds, {
+                        padding: 24,
+                        animate: animate,
+                        duration: 250,
+                        easing: function (t) { return 1 - (1 - t) * (1 - t); },
+                    });
                 }
-                fit();
-
-                // Refit after the app resizes the web view.
-                let pendingFit = false;
-                window.addEventListener("message", function (e) {
-                    if (e.data !== "fullscreen on" && e.data !== "fullscreen off") return;
-                    pendingFit = true;
-                });
+                fit(false);
 
                 let shown = false;
                 map.on("sourcedataloading", function (e) {
@@ -112,7 +110,6 @@
                 });
 
                 map.on("load", function () {
-                    report("map loaded " + innerWidth + "x" + innerHeight);
                     map.getSource("waypoint-path").setData({
                         type: "Feature",
                         properties: {},
@@ -120,13 +117,17 @@
                     });
                 });
 
+                // Refit whenever the container changes size, so fullscreen toggles are covered.
+                const container = document.getElementById("map");
+                let fittedSize = "";
                 new ResizeObserver(function () {
                     map.resize();
-                    if (pendingFit) {
-                        pendingFit = false;
-                        fit();
-                    }
-                }).observe(document.getElementById("map"));
+                    const size = container.clientWidth + "x" + container.clientHeight;
+                    if (size === fittedSize) return;
+                    const animate = fittedSize !== "";
+                    fittedSize = size;
+                    fit(animate);
+                }).observe(container);
 
                 document.addEventListener("visibilitychange", function () {
                     map.resize();

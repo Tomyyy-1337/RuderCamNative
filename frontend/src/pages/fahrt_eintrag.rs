@@ -222,9 +222,8 @@ fn map_section(points: Vec<(f64, f64)>, map_open: Signal<bool>) -> impl IntoElem
     } else {
         let web = element_ref();
         effect(move || {
-            let open = map_open.get();
+            let _ = map_open.get();
             hint_visible.set(false);
-            web.post_message(if open { "fullscreen on" } else { "fullscreen off" });
         });
         section
             .child(
