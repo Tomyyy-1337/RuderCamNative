@@ -1,4 +1,5 @@
 use nsh_base::{button, nav_page, theme};
+use nsh_core::element::Orientation;
 use nsh_core::prelude::*;
 
 use crate::Route;
@@ -12,6 +13,7 @@ pub(crate) fn settings_screen(
     content: impl IntoElement,
 ) -> Screen {
     nav_page()
+        .supported_orientations([Orientation::Portrait])
         .header_visible(false)
         .animation(ScreenAnimation::None)
         .on_dismiss(move || routes.update(|r| r.truncate(index.get_untracked())))
@@ -54,12 +56,12 @@ fn settings_page_header(
             .flex_1()
             .gap_1()
             .child(text(title)
-                .max_font_size_multiplier(crate::MAX_FONT_SCALE_MULTIPLIER)
+                .allow_font_scaling(false)
                 .text_size(px(28.0))
                 .text_color(move || theme().foreground),
             )
             .child(text(subtitle)
-                .max_font_size_multiplier(crate::MAX_FONT_SCALE_MULTIPLIER)
+                .allow_font_scaling(false)
                 .text_size(px(14.0))
                 .text_color(move || theme().muted_foreground),
             ),

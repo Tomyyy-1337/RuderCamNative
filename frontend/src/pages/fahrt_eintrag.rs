@@ -7,6 +7,7 @@ use shared_data::FinishedFahrt;
 use crate::Route;
 use crate::components::map::{map_html, route_js};
 use crate::stores::fahrtenbuch::Fahrtenbuch;
+use crate::stores::theme::ThemeMode;
 
 const SLIDE_WINDOW: usize = 3;
 
@@ -17,6 +18,7 @@ pub(crate) fn fahrt_eintrag(
     fahrtenbuch: Signal<Fahrtenbuch>,
     id: usize,
     map_open: Signal<bool>,
+    theme_mode: Signal<ThemeMode>,
 ) -> Screen {
     map_open.set(false);
     let ids = computed(move || fahrtenbuch.with(|book| Fahrtenbuch::newest_first_ids(book)));
@@ -52,7 +54,7 @@ pub(crate) fn fahrt_eintrag(
                         .max_w(px(840.0))
                         .style_when(move || !map_open.get(), move |s| s.px_2().pt_4())
                         .gap_4()
-                        .child(map_section(routes, index, points, map_open))
+                        .child(map_section(routes, index, points, map_open, theme_mode))
                         .child(when(move || !map_open.get(), move || {
                             scroll().flex_1().w_full().items_center().child(
                                 view()
@@ -320,12 +322,25 @@ fn map_section(
     index: ReadSignal<usize>,
     points: Memo<Vec<(f64, f64)>>,
     map_open: Signal<bool>,
+    theme_mode: Signal<ThemeMode>,
 ) -> impl IntoElement {
     let map_idle = signal(false);
     let map_ready = signal(false);
     let hint_visible = signal(false);
     let web = element_ref();
-    let section = view()
+
+    effect(move || {
+        let _ = map_open.get();
+        hint_visible.set(false);
+    });
+    effect(move || {
+        let route = points.get();
+        if map_ready.get() {
+            web.inject_java_script(&format!("window.setRoute([{}]);", route_js(&route)));
+        }
+    });
+    
+    view()
         .w_full()
         .h(px(260.0))
         .rounded(px(10.0))
@@ -338,37 +353,24 @@ fn map_section(
                 theme().muted
             }
         })
-        .child(
-            web_view_html(map_html(true, &points.with(Vec::clone)), None)
-                .element_ref(&web)
-                .bg(move || theme().background)
-                .opacity(move || if map_ready.get() { 1.0_f32 } else { 0.0_f32 })
-                .on_message(move |data: &str| match data {
-                    "map idle" => map_idle.set(true),
-                    "map ready" => map_ready.set(true),
-                    _ if data.starts_with("error") => map_ready.set(true),
-                    _ => {}
-                })
-                .w_full()
-                .h_full(),
+        .child(web_view_html(map_html(true, &points.with(Vec::clone), theme_mode.get_untracked()), None)
+            .element_ref(&web)
+            .bg(move || theme().background)
+            .opacity(move || if map_ready.get() { 1.0_f32 } else { 0.0_f32 })
+            .on_message(move |data: &str| match data {
+                "map idle" => map_idle.set(true),
+                "map ready" => map_ready.set(true),
+                _ if data.starts_with("error") => map_ready.set(true),
+                _ => {}
+            })
+            .w_full()
+            .h_full(),
         )
         .child(when(move || points.with(Vec::is_empty), empty_points))
         .child(when(move || hint_visible.get() && !map_open.get(), map_hint))
         .child(when(move || !map_open.get(), move || map_tap_target(hint_visible, map_open)))
         .child(when(move || points.with(|p| !p.is_empty()), move || fullscreen_button(map_open)))
-        .child(when(move || !map_open.get(), move || close_button(routes, index)));
-
-    effect(move || {
-        let _ = map_open.get();
-        hint_visible.set(false);
-    });
-    effect(move || {
-        let route = points.get();
-        if map_ready.get() {
-            web.inject_java_script(&format!("window.setRoute([{}]);", route_js(&route)));
-        }
-    });
-    section
+        .child(when(move || !map_open.get(), move || close_button(routes, index)))
 }
 
 /// Transparent tap target over the map: the first tap shows the hint, the second opens fullscreen.
@@ -438,5 +440,3 @@ fn empty_points() -> impl IntoElement {
                 .text_color(move || theme().muted_foreground),
         )
 }
-
-

@@ -15,7 +15,6 @@ lazy_static::lazy_static! {
     pub static ref I2C_INTERFACE: I2cInterface = I2cInterface::new();
 }
 
-
 fn main() {
     tokio::runtime::Builder::new_current_thread()
         .max_blocking_threads(4)

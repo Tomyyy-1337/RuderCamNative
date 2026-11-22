@@ -8,13 +8,14 @@ mod icons;
 mod components;
 
 use nsh_base::{nav_page, nav_stack, theme};
+use nsh_core::element::Orientation;
 use nsh_core::prelude::*;
 use pages::{
     anzeige_einstellungen, einstellungen, fahrt_eintrag, fahrtenbuch, home, kamera_einstellungen,
 };
 use stores::fahrtenbuch::Fahrtenbuch;
 
-use crate::components::{navbar::navbar, title_bar::main_title_bar};
+use crate::{components::{navbar::navbar, title_bar::main_title_bar}, stores::store::Store};
 
 #[derive(Clone, Copy, PartialEq)]
 enum Page {
@@ -52,8 +53,8 @@ pub fn App() -> impl IntoElement {
     let routes = signal(Vec::<Route>::new());
     let fahrt_map_open = signal(false);
     
-    let fahrtenbuch_store = signal(stores::fahrtenbuch::load());
-    effect(move || stores::fahrtenbuch::save(&fahrtenbuch_store.get()));
+    let fahrtenbuch_store = signal(Fahrtenbuch::load().unwrap_or_default());
+    effect(move || fahrtenbuch_store.get().save());
 
     let camera_interface = signal(shared_data::CameraInterface::new());
 
@@ -64,10 +65,10 @@ pub fn App() -> impl IntoElement {
     let fahrt_info = signal(None::<shared_data::FahrtInfo>);
     socket::start(socket_connected, camera_interface, battery_state, gps_count, fahrtenbuch_store, current_stats, fahrt_info);
 
-    let theme_mode = signal(stores::theme::load());
+    let theme_mode = signal(stores::theme::ThemeMode::load().unwrap_or_default());
     effect(move || {
         let mode = theme_mode.get();
-        stores::theme::save(mode);
+        mode.save();
         set_color_scheme(mode.appearance());
     });
 
@@ -90,6 +91,7 @@ pub fn App() -> impl IntoElement {
         .child(
             nav_page()
                 .key("tabs")
+                .supported_orientations([Orientation::Portrait])
                 .header_visible(false)
                 .status_bar(move || {
                     let style = match theme_mode.get() {
@@ -113,7 +115,7 @@ pub fn App() -> impl IntoElement {
                 Route::Anzeige => anzeige_einstellungen(routes, index, theme_mode),
                 Route::Kamera => kamera_einstellungen(routes, index, camera_interface),
                 Route::FahrtEintrag(id) => {
-                    fahrt_eintrag(routes, index, fahrtenbuch_store, id, fahrt_map_open)
+                    fahrt_eintrag(routes, index, fahrtenbuch_store, id, fahrt_map_open, theme_mode)
                 }
             },
         ))

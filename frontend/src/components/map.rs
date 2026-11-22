@@ -1,3 +1,5 @@
+use crate::stores::theme::ThemeMode;
+
 /// The route as JavaScript `[lon,lat]` pairs, without the surrounding brackets.
 pub(crate) fn route_js(route: &[(f64, f64)]) -> String {
     route
@@ -8,12 +10,12 @@ pub(crate) fn route_js(route: &[(f64, f64)]) -> String {
 }
 
 /// The map page's HTML; `interactive` enables pan and zoom.
-pub(crate) fn map_html(interactive: bool, route: &[(f64, f64)]) -> String {
+pub(crate) fn map_html(interactive: bool, route: &[(f64, f64)], mode: ThemeMode) -> String {
     let route = route_js(route);
-    let (theme, background) = match crate::stores::theme::load() {
-        // Must match the palette background in map_style.js.
-        crate::stores::theme::ThemeMode::Dark => ("dark", "#121518"),
-        crate::stores::theme::ThemeMode::Light => ("light", "#e0e0e0"),
+    // Must match the palette background in map_style.js.
+    let (theme, background) = match mode {
+        ThemeMode::Dark => ("dark", "#121518"),
+        ThemeMode::Light => ("light", "#e0e0e0"),
     };
     include_str!("webview_assets/map.html")
         .replace("__ROUTE__", &route)
