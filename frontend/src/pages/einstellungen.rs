@@ -22,6 +22,9 @@ pub(crate) fn einstellungen(routes: Signal<Vec<Route>>) -> impl IntoElement {
                     .child(settings_link("Kamera-Einstellungen", move || {
                         routes.update(|r| r.push(Route::Kamera))
                     }))
+                    .child(settings_link("Overlay-Einstellungen", move || {
+                        routes.update(|r| r.push(Route::Overlay))
+                    }))
                 )
         )
 }

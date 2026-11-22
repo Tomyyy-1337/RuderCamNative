@@ -1,7 +1,6 @@
 //! The theme mode, kept in the app's storage across launches.
 
 use nsh_core::prelude::Appearance;
-use nsh_core::storage::Storage;
 use serde::{Deserialize, Serialize};
 
 use crate::stores::store::Store;

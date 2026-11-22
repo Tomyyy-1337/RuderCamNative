@@ -12,8 +12,10 @@ use nsh_core::element::Orientation;
 use nsh_core::prelude::*;
 use pages::{
     anzeige_einstellungen, einstellungen, fahrt_eintrag, fahrtenbuch, home, kamera_einstellungen,
+    overlay_einstellungen, overlay_elemente,
 };
 use stores::fahrtenbuch::Fahrtenbuch;
+use stores::overlay_settings::OverlaySettings;
 
 use crate::{components::{navbar::navbar, title_bar::main_title_bar}, stores::store::Store};
 
@@ -28,6 +30,8 @@ enum Page {
 enum Route {
     Anzeige,
     Kamera,
+    Overlay,
+    OverlayElemente,
     FahrtEintrag(usize),
 }
 
@@ -57,6 +61,9 @@ pub fn App() -> impl IntoElement {
     effect(move || fahrtenbuch_store.get().save());
 
     let camera_interface = signal(shared_data::CameraInterface::new());
+
+    let overlay_settings = signal(OverlaySettings::load().unwrap_or_default());
+    effect(move || overlay_settings.get().save());
 
     let socket_connected = signal(false);
     let battery_state = signal(0u8);
@@ -114,6 +121,8 @@ pub fn App() -> impl IntoElement {
             move |route, index| match route.get_untracked() {
                 Route::Anzeige => anzeige_einstellungen(routes, index, theme_mode),
                 Route::Kamera => kamera_einstellungen(routes, index, camera_interface),
+                Route::Overlay => overlay_einstellungen(routes, index, overlay_settings),
+                Route::OverlayElemente => overlay_elemente(routes, index, overlay_settings),
                 Route::FahrtEintrag(id) => {
                     fahrt_eintrag(routes, index, fahrtenbuch_store, id, fahrt_map_open, theme_mode)
                 }

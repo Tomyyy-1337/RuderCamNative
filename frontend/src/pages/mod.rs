@@ -8,4 +8,4 @@ pub(crate) use einstellungen::einstellungen;
 pub(crate) use fahrt_eintrag::fahrt_eintrag;
 pub(crate) use fahrtenbuch::fahrtenbuch;
 pub(crate) use home::home;
-pub(crate) use settings::{anzeige_einstellungen, kamera_einstellungen};
+pub(crate) use settings::{anzeige_einstellungen, kamera_einstellungen, overlay_einstellungen, overlay_elemente};
