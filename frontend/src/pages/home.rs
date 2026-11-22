@@ -1,6 +1,8 @@
 use nsh_base::{button, theme};
 use nsh_core::prelude::*;
 
+use crate::components::video::video_player;
+
 pub(crate) fn home(
     socket_connected: Signal<bool>,
     fahrt_info: Signal<Option<shared_data::FahrtInfo>>,
@@ -9,6 +11,8 @@ pub(crate) fn home(
         .flex_1()
         .items_center()
         .justify_center()
+        .gap_4()
+        .child(video_player(socket_connected))
         .child(
             button()
                 .w(px(200.0))

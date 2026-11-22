@@ -12,27 +12,16 @@ pub(crate) fn einstellungen(routes: Signal<Vec<Route>>) -> impl IntoElement {
             scroll()
                 .flex_1()
                 .w_full()
-                .child(
-            view()
-                .w_full()
-                .pt_2()
-                .gap_6()
-                .child(
-            view()
-                .gap_1()
-                .child(text("Lokale Einstellungen").max_font_size_multiplier(crate::MAX_FONT_SCALE_MULTIPLIER).text_size(px(28.0)))
-                .child(
-                    text("Einstellungen für die App").max_font_size_multiplier(crate::MAX_FONT_SCALE_MULTIPLIER)
-                        .text_size(px(14.0))
-                        .text_color(move || theme().muted_foreground),
-                ),
-        )
-        .child(settings_link("Anzeige-Einstellungen", move || {
-            routes.update(|r| r.push(Route::Anzeige))
-        }))
-        .child(settings_link("Kamera-Einstellungen", move || {
-            routes.update(|r| r.push(Route::Kamera))
-        }))
+                .child(view()
+                    .w_full()
+                    .pt_2()
+                    .gap_4()
+                    .child(settings_link("Anzeige-Einstellungen", move || {
+                        routes.update(|r| r.push(Route::Anzeige))
+                    }))
+                    .child(settings_link("Kamera-Einstellungen", move || {
+                        routes.update(|r| r.push(Route::Kamera))
+                    }))
                 )
         )
 }

@@ -6,7 +6,7 @@ use tokio::sync::mpsc::{UnboundedSender, unbounded_channel};
 
 use crate::stores::fahrtenbuch;
 
-const RETRY_DELAY: Duration = Duration::from_secs(3);
+const RETRY_DELAY: Duration = Duration::from_secs(1);
 
 fn apply_message(
     message: Message,
@@ -57,7 +57,6 @@ pub fn start(
     fahrt_info: Signal<Option<shared_data::FahrtInfo>>,
 ) {
     let (events, mut received) = unbounded_channel();
-
     spawn(async move {
         while let Some(event) = received.recv().await {
             match event {

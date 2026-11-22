@@ -5,14 +5,16 @@ mod pages;
 mod socket;
 mod stores;
 mod icons;
+mod components;
 
-use icons::{battery::battery_indicator, gps::gps_indicator};
-use nsh_base::{nav_page, nav_stack, tab, tabs, theme};
+use nsh_base::{nav_page, nav_stack, theme};
 use nsh_core::prelude::*;
 use pages::{
     anzeige_einstellungen, einstellungen, fahrt_eintrag, fahrtenbuch, home, kamera_einstellungen,
 };
 use stores::fahrtenbuch::Fahrtenbuch;
+
+use crate::components::{navbar::navbar, title_bar::main_title_bar};
 
 #[derive(Clone, Copy, PartialEq)]
 enum Page {
@@ -117,62 +119,6 @@ pub fn App() -> impl IntoElement {
         ))
 }
 
-fn navbar(page: Signal<Page>) -> impl IntoElement {
-    let mut bar = tabs()
-        .flex_row()
-        .p_2()
-        .rounded(px(10.0))
-        .bg(move || theme().muted);
-    for (item, label) in PAGES {
-        bar = bar.child(
-            tab()
-                .flex_1()
-                .items_center()
-                .py_2()
-                .rounded(px(8.0))
-                .bg(move || if page.get() == item { theme().primary } else { theme().muted })
-                .selected(move || page.get() == item)
-                .on_press(move || page.set(item))
-                .child(text(label).allow_font_scaling(false).text_size(px(16.0)).text_color(move || {
-                    if page.get() == item {
-                        theme().primary_foreground
-                    } else {
-                        theme().foreground
-                    }
-                })),
-        );
-    }
-    bar
-}
-
-fn title_bar(
-    battery_state: Signal<u8>,
-    gps_count: Signal<u8>,
-    socket_connected: Signal<bool>,
-) -> impl IntoElement {
-    view()
-        .flex_row()
-        .items_center()
-        .h(px(50.0))
-        .px_2()
-        .py_3()
-        .rounded(px(10.0))
-        .bg(move || theme().muted)
-        .child(
-            view()
-                .flex_1()
-                .items_start()
-                .child(battery_indicator(battery_state, socket_connected)),
-        )
-        .child(text("Ruder Cam Beta").allow_font_scaling(false).text_size(px(20.0)))
-        .child(
-            view()
-                .flex_1()
-                .items_end()
-                .child(gps_indicator(gps_count, socket_connected)),
-        )
-}
-
 fn tabs_content(
     page: Signal<Page>,
     routes: Signal<Vec<Route>>,
@@ -189,7 +135,7 @@ fn tabs_content(
                 .w_full()
                 .max_w(px(840.0))
                 .gap_4()
-                .child(title_bar(battery_state, gps_count, socket_connected))
+                .child(main_title_bar(battery_state, gps_count, socket_connected))
                 .child(navbar(page))
                 .child(
                     view()

@@ -1,0 +1,42 @@
+<!doctype html>
+<html>
+    <head>
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <style>
+            html, body { margin: 0; height: 100%; background: #000; overflow: hidden; }
+            video { width: 100%; height: 100%; object-fit: contain; background: #000; }
+            #status {
+                position: absolute;
+                inset: 0;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                color: #888;
+                font: 16px sans-serif;
+            }
+        </style>
+    </head>
+    <body>
+        <video id="video" autoplay muted playsinline></video>
+        <div id="status">Verbinde…</div>
+        <script>__READER_JS__</script>
+        <script>
+            const video = document.getElementById("video");
+            const status = document.getElementById("status");
+
+            const reader = new MediaMTXWebRTCReader({
+                url: "__WHEP_URL__",
+                onTrack: (evt) => {
+                    video.srcObject = evt.streams[0];
+                    status.style.display = "none";
+                },
+                onError: (err) => {
+                    status.textContent = err;
+                    status.style.display = "flex";
+                },
+            });
+
+            window.addEventListener("pagehide", () => reader.close());
+        </script>
+    </body>
+</html>

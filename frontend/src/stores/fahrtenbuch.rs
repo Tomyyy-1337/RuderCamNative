@@ -35,6 +35,18 @@ impl Fahrtenbuch {
     pub fn remove_entry(&mut self, index: usize) {
         self.entries.retain(|entry| entry.index != index);
     }
+
+    pub fn total_distance(&self) -> f32 {
+        self.entries.iter().map(|entry| entry.value.distance_traveled).sum()
+    }
+
+    pub fn newest_first_ids(&self) -> Vec<usize> {
+        self.entries.iter().rev().map(|entry| entry.index).collect()
+    }
+
+    pub fn find_trip(&self, id: usize) -> Option<&FinishedFahrt> {
+        self.entries.iter().find(|entry| entry.index == id).map(|entry| &entry.value)
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]

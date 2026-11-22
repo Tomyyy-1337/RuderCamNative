@@ -15,52 +15,32 @@ pub(crate) fn settings_screen(
         .header_visible(false)
         .animation(ScreenAnimation::None)
         .on_dismiss(move || routes.update(|r| r.truncate(index.get_untracked())))
-        .child(settings_page_wrapper(
-            title,
-            subtitle,
-            move || {
-                routes.update(|r| {
-                    r.pop();
-                })
-            },
-            content,
-        ))
-}
-
-/// Title, subtitle and a round close button, followed by the page content inside a centred column.
-pub(crate) fn settings_page_wrapper(
-    title: impl Into<String>,
-    subtitle: impl Into<String>,
-    on_close: impl Fn() + 'static,
-    content: impl IntoElement,
-) -> impl IntoElement {
-    view()
-        .flex_1()
-        .p_safe_area()
-        .bg(move || theme().background)
-        .child(
-            scroll()
+        .child(view()
+            .flex_1()
+            .p_safe_area()
+            .bg(move || theme().background)
+            .child(scroll()
                 .flex_1()
                 .w_full()
                 .items_center()
-                .child(
-            view()
-                .w_full()
-                .max_w(px(840.0))
-                .px_2()
-                .pt_4()
-                .gap_6()
-                .bg(move || theme().background)
-                .text_color(move || theme().foreground)
-                .child(settings_page_header(title, subtitle, on_close))
-                .child(view().w_full().h(px(1.0)).bg(move || theme().muted))
-                .child(content),
+                .child(view()
+                    .w_full()
+                    .max_w(px(840.0))
+                    .px_2()
+                    .pt_4()
+                    .gap_6()
+                    .bg(move || theme().background)
+                    .text_color(move || theme().foreground)
+                    .child(settings_page_header(title, subtitle, move || routes.update(|r| {r.pop();})))
+                    .child(view().w_full().h(px(1.0)).bg(move || theme().muted))
+                    .child(content),
                 )
+            )
         )
 }
 
 /// The title, subtitle and round close button at the top of a settings page.
-pub(crate) fn settings_page_header(
+fn settings_page_header(
     title: impl Into<String>,
     subtitle: impl Into<String>,
     on_close: impl Fn() + 'static,
@@ -70,40 +50,35 @@ pub(crate) fn settings_page_header(
     view()
         .flex_row()
         .items_center()
-        .child(
-            view()
-                .flex_1()
-                .gap_1()
-                .child(
-                    text(title)
-                        .max_font_size_multiplier(crate::MAX_FONT_SCALE_MULTIPLIER)
-                        .text_size(px(28.0))
-                        .text_color(move || theme().foreground),
-                )
-                .child(
-                    text(subtitle).max_font_size_multiplier(crate::MAX_FONT_SCALE_MULTIPLIER)
-                        .text_size(px(14.0))
-                        .text_color(move || theme().muted_foreground),
-                ),
+        .child(view()
+            .flex_1()
+            .gap_1()
+            .child(text(title)
+                .max_font_size_multiplier(crate::MAX_FONT_SCALE_MULTIPLIER)
+                .text_size(px(28.0))
+                .text_color(move || theme().foreground),
+            )
+            .child(text(subtitle)
+                .max_font_size_multiplier(crate::MAX_FONT_SCALE_MULTIPLIER)
+                .text_size(px(14.0))
+                .text_color(move || theme().muted_foreground),
+            ),
         )
-        .child(
-            button()
-                .w(px(40.0))
-                .h(px(40.0))
-                .rounded(px(20.0))
-                .bg(move || theme().muted)
-                .active(|s| s.scale(0.95))
-                .on_press(move || on_close())
-                .child(
-                    view()
-                        .flex_1()
-                        .items_center()
-                        .justify_center()
-                        .child(
-                            text("✕").max_font_size_multiplier(crate::MAX_FONT_SCALE_MULTIPLIER)
-                                .text_size(px(16.0))
-                                .text_color(move || theme().foreground),
-                        ),
+        .child(button()
+            .w(px(40.0))
+            .h(px(40.0))
+            .rounded(px(20.0))
+            .bg(move || theme().muted)
+            .active(|s| s.scale(0.95))
+            .on_press(move || on_close())
+            .child(view()
+                .flex_1()
+                .items_center()
+                .justify_center()
+                .child(text("✕").max_font_size_multiplier(crate::MAX_FONT_SCALE_MULTIPLIER)
+                    .text_size(px(16.0))
+                    .text_color(move || theme().foreground),
                 ),
+            ),
         )
 }

@@ -5,7 +5,7 @@ use shared_data::{CameraInterface, CurrentStats, FahrtInfo, FinishedFahrt, WlanS
 use tokio::{runtime::LocalOptions, sync::watch};
 use tower_http::{cors::CorsLayer, services::ServeDir};
 
-use crate::{api::{camera_settings::{set_bitrate_handler, set_exposure_compensation_handler, set_focal_length_handler, set_focus_mode_handler, set_hdr_active_handler, set_metering_mode_handler}, toggle_fahrt::toggle_fahrt_handler}, hardware_interface::i2c_interface::I2cInterface, tasks::{reader_accelerometer::read_accelerometer_task, reader_battery::read_battery_task, reader_gps::read_gps_task, save_config::{read_config, save_config_task}, send_current_stats::send_current_stats_task, send_fahrt_info::send_fahrt_info_task, update_camera::update_camera_task}};
+use crate::{api::{camera_settings::{set_bitrate_handler, set_exposure_compensation_handler, set_focal_length_handler, set_focus_mode_handler, set_hdr_active_handler, set_metering_mode_handler}, toggle_fahrt::toggle_fahrt_handler}, hardware_interface::{hotspot_interface, i2c_interface::I2cInterface}, tasks::{reader_accelerometer::read_accelerometer_task, reader_battery::read_battery_task, reader_gps::read_gps_task, save_config::{read_config, save_config_task}, send_current_stats::send_current_stats_task, send_fahrt_info::send_fahrt_info_task, update_camera::update_camera_task}};
 
 mod api;
 mod hardware_interface;
@@ -27,7 +27,7 @@ fn main() {
                 Some((camera, wlan)) => (camera, wlan),
                 None => (CameraInterface::new(), WlanSettings::default()),
             }; 
-            
+
             let (camera_interface_sender, camera_interface_receiver) = watch::channel(camera_interface_initial);
             let (wlan_settings_sender, wlan_settings_receiver) = watch::channel(wlan_settings_initial);
             let (battery_sender, battery_receiver) = watch::channel(shared_data::BatteryState { percentage: 50 });

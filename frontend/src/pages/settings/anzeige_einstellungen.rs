@@ -62,11 +62,15 @@ fn theme_option(
                 theme().muted
             }
         })
-        .child(text(label).max_font_size_multiplier(crate::MAX_FONT_SCALE_MULTIPLIER).text_size(px(15.0)).text_color(move || {
-            if theme_mode.get() == mode {
-                theme().card_foreground
-            } else {
-                theme().muted_foreground
+        .child(text(label)
+            .max_font_size_multiplier(crate::MAX_FONT_SCALE_MULTIPLIER)
+            .text_size(px(15.0))
+            .text_color(move || {
+                if theme_mode.get() == mode {
+                    theme().card_foreground
+                } else {
+                    theme().muted_foreground
+                }
             }
-        }))
+        ))
 }

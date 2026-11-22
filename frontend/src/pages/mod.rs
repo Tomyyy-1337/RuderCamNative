@@ -1,4 +1,3 @@
-mod components;
 mod einstellungen;
 mod fahrt_eintrag;
 mod fahrtenbuch;
