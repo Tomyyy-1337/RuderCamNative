@@ -13,11 +13,10 @@ pub async fn read_battery_task(battery_sender: watch::Sender<BatteryState>) {
         let battery_percentage = crate::I2C_INTERFACE.read_battery_percentage().await;
         let _ = battery_sender.send(BatteryState { percentage: battery_percentage });
         
-        /// Check if the battery is critically low and shut down if necessary. Only on raspberry pi 
         if battery_percentage <= 2 {
             println!("Battery critically low ({}%), shutting down...", battery_percentage);
             tokio::time::sleep(std::time::Duration::from_secs(3)).await;
-            crate::backend::hardware_interface::pi_interface::shutdown();
+            crate::hardware_interface::pi_interface::shutdown();
         } 
     }
 

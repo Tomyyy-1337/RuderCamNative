@@ -1,7 +1,7 @@
 # Ruder Cam Treiber
 
 
-### Install dependencies:
+## Install dependencies:
 ```bash
 sudo apt update
 sudo apt install libudev-dev pkg-config -y
@@ -28,7 +28,7 @@ sudo nano /etc/rpi/swap.conf
 Mechanism=none
 ```
 
-### Media Mtx
+## Media Mtx
 Upload mediamtx.yml to mediamtx repository of the Raspberry Pi.
 
 ```bash
@@ -61,6 +61,7 @@ sudo systemctl start mediamtx.service
 
 Stream accessible at: `http://<your-pi-ip>:8889/stream/`
 
+## Update Service
 ```bash
 sudo nano /etc/systemd/system/update_service.service
 ```
@@ -90,7 +91,7 @@ sudo systemctl enable update_service.service
 sudo systemctl start update_service.service
 ```
 
-### Backend Setup
+## Backend Setup
 - Use the update service to update the backend on the pi
 
 ```bash

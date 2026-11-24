@@ -9,10 +9,10 @@
   "capabilities": {
     "statusBar": true,
     "network": {
-      "hosts": ["127.0.0.1", "maps.passberg.net", "192.168.178.77", "192.168.178.30"]
+      "hosts": ["127.0.0.1", "maps.passberg.net", "192.168.50.1"]
     },
     "webview": {
-      "hosts": ["maps.passberg.net", "192.168.178.30"]
+      "hosts": ["maps.passberg.net", "192.168.50.1"]
     }
   }
 }

@@ -27,6 +27,14 @@ fn main() {
                 None => (CameraInterface::new(), WlanSettings::default()),
             }; 
 
+            #[cfg(target_os = "linux")] {
+                let ssid = wlan_settings_initial.ssid.clone();
+                let password = wlan_settings_initial.password.clone();
+                tokio::task::spawn_blocking(move || {
+                    hotspot_interface::Hotspot::initialize(&ssid, &password);
+                });
+            }
+
             let (camera_interface_sender, camera_interface_receiver) = watch::channel(camera_interface_initial);
             let (wlan_settings_sender, wlan_settings_receiver) = watch::channel(wlan_settings_initial);
             let (battery_sender, battery_receiver) = watch::channel(shared_data::BatteryState { percentage: 50 });
@@ -48,7 +56,6 @@ fn main() {
 
             let addr = SocketAddr::from(([0, 0, 0, 0], 8140));
             let app = Router::new()
-                .route("/", axum::routing::get(|| async { "Hello, World!" }))
                 .merge(shared_data::api::set_focal_length(set_focal_length_handler, camera_interface_sender.clone()))
                 .merge(shared_data::api::set_hdr_active(set_hdr_active_handler, camera_interface_sender.clone()))
                 .merge(shared_data::api::set_bitrate(set_bitrate_handler, camera_interface_sender.clone()))
@@ -65,10 +72,16 @@ fn main() {
                     fahrt_info_receiver
                 )))
                 .nest_service("/maps", get_service(ServeDir::new("./maps")))
-                .layer(CorsLayer::permissive());
+                .fallback_service(get_service(ServeDir::new("./static").precompressed_gzip().precompressed_br()))
+                .layer(CorsLayer::permissive()); 
             
             let listener = tokio::net::TcpListener::bind(addr).await.expect("Failed to bind to address");
+            #[cfg(not(target_os = "linux"))]
             println!("Server running on http://127.0.0.1:8140");
+
+            #[cfg(target_os = "linux")]
+            println!("Server running on http://192.168.50.1:8140");
+
             let _ = axum::serve(listener, app).await;
         });
 }

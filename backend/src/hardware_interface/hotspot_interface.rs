@@ -80,6 +80,7 @@ impl Hotspot{
 
     pub fn initialize(ssid: &str, password: &str) {
         if Self::is_running(ssid, password) {
+            println!("Hotspot is already running with the specified SSID and password.");
             return;
         }
 
@@ -125,6 +126,7 @@ impl Hotspot{
         ]);
         
         let _ = Self::nmcli(&["connection", "up", Self::HOTSPOT_PROFILE_NAME]);
+        println!("Hotspot has been initialized with SSID: {} and password: {}", ssid, password);
     }
 
 }

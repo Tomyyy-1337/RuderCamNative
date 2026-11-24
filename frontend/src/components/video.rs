@@ -1,6 +1,6 @@
 use nsh_core::prelude::*;
 
-const WHEP_URL: &str = "http://192.168.178.30:8889/stream/whep";
+const WHEP_URL: &str = "http://192.168.50.1:8889/stream/whep";
 
 /// The live video, shown only while the websocket is connected.
 pub(crate) fn video_player(socket_connected: Signal<bool>) -> impl IntoElement {

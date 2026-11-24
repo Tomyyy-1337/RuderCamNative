@@ -10,7 +10,7 @@ impl Default for WlanSettings {
     fn default() -> Self {
         WlanSettings {
             ssid: "RuderCam".to_string(),
-            password: "1234".to_string()
+            password: "ObilanKenobi".to_string()
         }
     }
 }
