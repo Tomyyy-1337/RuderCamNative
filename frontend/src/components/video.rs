@@ -1,6 +1,5 @@
 use nsh_core::prelude::*;
-
-const WHEP_URL: &str = "http://192.168.50.1:8889/stream/whep";
+use shared_data::api::API_BASE_URL;
 
 /// The live video, shown only while the websocket is connected.
 pub(crate) fn video_player(socket_connected: Signal<bool>) -> impl IntoElement {
@@ -13,9 +12,8 @@ pub(crate) fn video_player(socket_connected: Signal<bool>) -> impl IntoElement {
     })
 }
 
-/// The player page; `reader.js` and the WHEP URL are inlined.
+/// The player page with the WHEP URL (backend proxy) inlined.
 fn video_html() -> String {
     include_str!("webview_assets/video.html")
-        .replace("__READER_JS__", include_str!("webview_assets/reader.js"))
-        .replace("__WHEP_URL__", WHEP_URL)
+        .replace("__WHEP_URL__", &format!("{API_BASE_URL}livestream/whep"))
 }

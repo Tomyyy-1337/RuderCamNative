@@ -19,24 +19,61 @@
     <body>
         <video id="video" autoplay muted playsinline></video>
         <div id="status">Verbinde…</div>
-        <script>__READER_JS__</script>
         <script>
+            const WHEP_URL = "__WHEP_URL__";
+            const RETRY_MS = 1000;
             const video = document.getElementById("video");
             const status = document.getElementById("status");
+            let pc = null;
 
-            const reader = new MediaMTXWebRTCReader({
-                url: "__WHEP_URL__",
-                onTrack: (evt) => {
+            function waitForIceGathering(pc) {
+                if (pc.iceGatheringState === "complete") return Promise.resolve();
+                return new Promise((resolve) => {
+                    pc.addEventListener("icegatheringstatechange", () => {
+                        if (pc.iceGatheringState === "complete") resolve();
+                    });
+                });
+            }
+
+            function retry(err) {
+                status.textContent = String(err);
+                status.style.display = "flex";
+                if (pc !== null) pc.close();
+                pc = null;
+                setTimeout(connect, RETRY_MS);
+            }
+
+            async function connect() {
+                pc = new RTCPeerConnection();
+                pc.addTransceiver("video", { direction: "recvonly" });
+                pc.addTransceiver("audio", { direction: "recvonly" });
+                pc.ontrack = (evt) => {
                     video.srcObject = evt.streams[0];
                     status.style.display = "none";
-                },
-                onError: (err) => {
-                    status.textContent = err;
-                    status.style.display = "flex";
-                },
-            });
+                };
+                pc.onconnectionstatechange = () => {
+                    if (pc.connectionState === "failed") retry("connection failed");
+                };
 
-            window.addEventListener("pagehide", () => reader.close());
+                try {
+                    await pc.setLocalDescription(await pc.createOffer());
+                    await waitForIceGathering(pc);
+
+                    const res = await fetch(WHEP_URL, {
+                        method: "POST",
+                        headers: { "Content-Type": "application/sdp" },
+                        body: pc.localDescription.sdp,
+                    });
+                    if (!res.ok) throw new Error(await res.text());
+
+                    await pc.setRemoteDescription({ type: "answer", sdp: await res.text() });
+                } catch (err) {
+                    retry(err);
+                }
+            }
+
+            connect();
+            window.addEventListener("pagehide", () => { if (pc !== null) pc.close(); });
         </script>
     </body>
 </html>

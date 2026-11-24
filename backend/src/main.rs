@@ -63,6 +63,7 @@ fn main() {
                 .merge(shared_data::api::set_exposure_compensation(set_exposure_compensation_handler, camera_interface_sender.clone()))
                 .merge(shared_data::api::set_metering_mode(set_metering_mode_handler, camera_interface_sender))
                 .merge(shared_data::api::toggle_fahrt(toggle_fahrt_handler, (fahrt_sender, finished_fahrt_sender))) 
+                .route("/api/livestream/whep", axum::routing::post(api::livestream::whep_offer_handler))
                 .route("/ws", axum::routing::get(move |ws: axum::extract::ws::WebSocketUpgrade| api::socket::ws_handler(ws, 
                     camera_interface_receiver,
                     battery_receiver,
